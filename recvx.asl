@@ -8,23 +8,44 @@ state("pcsx2") {}
 
 startup
 {
-    settings.Add("keygroup", true, "Keys");
-    settings.Add("hawkEmblem", false, "Hawk Emblem", "keygroup");
+    vars.indexer = new Dictionary<byte, string>();
+    vars.tracker = new Dictionary<byte, bool>();
+
+    vars.AddSplit = (Action<byte, string, bool, string, string>)((code, id, default_value, description, parent) => {
+        vars.indexer.Add(code, id);
+        vars.tracker.Add(code, false);
+        settings.Add(id, default_value, description, parent);
+    });
+
+    vars.AddGroup = (Action<string, bool, string>)((id, default_value, description) => {
+        settings.Add(id, default_value, description);
+    });
+
+    vars.AddGroup("keygroup", true, "Hawk Emblem");
+    vars.AddSplit(0x3B, "hawkEmblem", false, "Hawk Emblem", "keygroup");
     
-    settings.Add("weapons", true, "Weapons");
-    settings.Add("combatKnife", false, "Combat Knife", "weapons");
-    settings.Add("handgun", false, "Handgun", "weapons");
-    settings.Add("handgunB", false, "Handgun B", "weapons");
-    settings.Add("assaultRifle", false, "Assault Rifle", "weapons");
-    settings.Add("sniperRifle", false, "Sniper Rifle", "weapons");
-    settings.Add("shotgun", false, "Shotgun", "weapons");
-    settings.Add("grenadeLauncher", false, "Grenade Launcher", "weapons");
-    settings.Add("bowGun", false, "Bow Gun", "weapons");
-    settings.Add("customHandgun", false, "Custom Handgun", "weapons");
-    settings.Add("linearLauncher", false, "Linear Launcher", "weapons");
-    settings.Add("magnum", false, "Magnum", "weapons");
-    settings.Add("goldLugers", false, "Gold Lugers", "weapons");
-    settings.Add("subMachineGun", false, "Sub Machine Gun", "weapons");
+    vars.AddGroup("weapons", true, "Weapons");
+    vars.AddSplit(0x08, "combatKnife", false, "Combat Knife", "weapons");
+    vars.AddSplit(0x09, "handgun", false, "Handgun", "weapons");
+    vars.AddSplit(0x05, "handgunB", false, "Handgun B", "weapons");
+    vars.AddSplit(0x02, "assaultRifle", false, "Assault Rifle", "weapons");
+    vars.AddSplit(0x03, "sniperRifle", false, "Sniper Rifle", "weapons");
+    vars.AddSplit(0x04, "shotgun", false, "Shotgun", "weapons");
+    vars.AddSplit(0x06, "grenadeLauncher", false, "Grenade Launcher", "weapons");
+    vars.AddSplit(0x07, "bowGun", false, "Bow Gun", "weapons");
+    vars.AddSplit(0x0A, "customHandgun", false, "Custom Handgun", "weapons");
+    vars.AddSplit(0x0B, "linearLauncher", false, "Linear Launcher", "weapons");
+    vars.AddSplit(0x20, "magnum", false, "Magnum", "weapons");
+    vars.AddSplit(0x21, "goldLugers", false, "Gold Lugers", "weapons");
+    vars.AddSplit(0x22, "subMachineGun", false, "Sub Machine Gun", "weapons");
+
+    vars.ResetTracker = (Action) (() => {
+        List<byte> keys = new List<byte>(vars.tracker.Keys);
+        foreach(byte key in keys)
+        {
+            vars.tracker[key] = false; 
+        }
+    });
 
     vars.SwapEndianness = (Func<ushort, ushort>)((value) => {
         int b1 = (value >> 0) & 0xff;
@@ -169,149 +190,22 @@ update
     
     if (timer.CurrentPhase == TimerPhase.NotRunning)
     {
-        vars.hawkEmblem = 0;
-        
-        vars.combatKnife = 0;
-        vars.handgun = 0;
-        vars.handgunB = 0;
-        vars.assaultRifle = 0;
-        vars.sniperRifle = 0;
-        vars.shotgun = 0;
-        vars.grenadeLauncher = 0;
-        vars.bowGun = 0;
-        vars.customHandgun = 0;
-        vars.linearLauncher = 0;
-        vars.magnum = 0;
-        vars.goldLugers = 0;
-        vars.subMachineGun = 0;
+        vars.ResetTracker();
     }
 }
 
 split
 {
-    byte[] currentInventory = (current.inventory as byte[]);
-    byte[] oldInventory = (old.inventory as byte[]);
-
-    for (int i = 0; i < currentInventory.Length; i++)
+    for (int i = 0; i < current.inventory.Length; i++)
     {
-        if (currentInventory[i] != oldInventory[i])
+        byte item = current.inventory[i];
+
+        if (item != old.inventory[i])
         {
-            switch (currentInventory[i])
+            if (vars.tracker.ContainsKey(item) && !vars.tracker[item])
             {
-                case 0x3B:
-                    if (vars.hawkEmblem == 0)
-                    {
-                        vars.hawkEmblem = 1;
-                        return settings["hawkEmblem"];
-                    }
-                    break;
-                    
-                case 0x08:
-                    if (vars.combatKnife == 0)
-                    {
-                        vars.combatKnife = 1;
-                        return settings["combatKnife"];
-                    }
-                    break;
-                    
-                case 0x09:
-                    if (vars.handgun == 0)
-                    {
-                        vars.handgun = 1;
-                        return settings["handgun"];
-                    }
-                    break;
-                    
-                case 0x05:
-                    if (vars.handgunB == 0)
-                    {
-                        vars.handgunB = 1;
-                        return settings["handgunB"];
-                    }
-                    break;
-                    
-                case 0x02:
-                    if (vars.assaultRifle == 0)
-                    {
-                        vars.assaultRifle = 1;
-                        return settings["assaultRifle"];
-                    }
-                    break;
-                    
-                case 0x03:
-                    if (vars.sniperRifle == 0)
-                    {
-                        vars.sniperRifle = 1;
-                        return settings["sniperRifle"];
-                    }
-                    break;
-                    
-                case 0x04:
-                    if (vars.shotgun == 0)
-                    {
-                        vars.shotgun = 1;
-                        return settings["shotgun"];
-                    }
-                    break;
-                    
-                case 0x06:
-                    if (vars.grenadeLauncher == 0)
-                    {
-                        vars.grenadeLauncher = 1;
-                        return settings["grenadeLauncher"];
-                    }
-                    break;
-                    
-                case 0x07:
-                    if (vars.bowGun == 0)
-                    {
-                        vars.bowGun = 1;
-                        return settings["bowGun"];
-                    }
-                    break;
-                    
-                case 0x0A:
-                    if (vars.customHandgun == 0)
-                    {
-                        vars.customHandgun = 1;
-                        return settings["customHandgun"];
-                    }
-                    break;
-                    
-                case 0x0B:
-                    if (vars.linearLauncher == 0)
-                    {
-                        vars.linearLauncher = 1;
-                        return settings["linearLauncher"];
-                    }
-                    break;
-                    
-                case 0x20:
-                    if (vars.magnum == 0)
-                    {
-                        vars.magnum = 1;
-                        return settings["magnum"];
-                    }
-                    break;
-                    
-                case 0x21:
-                    if (vars.goldLugers == 0)
-                    {
-                        vars.goldLugers = 1;
-                        return settings["goldLugers"];
-                    }
-                    break;
-                    
-                case 0x22:
-                    if (vars.subMachineGun == 0)
-                    {
-                        vars.subMachineGun = 1;
-                        return settings["subMachineGun"];
-                    }
-                    break;
-                
-                default:
-                    break;
+                vars.tracker[item] = true;
+                return settings[vars.indexer[item]]; 
             }
         }
     }

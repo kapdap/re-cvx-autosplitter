@@ -19,4 +19,5 @@ PlayStation 2 releases:
 
 ## TODO/Bugs
  - ***End Game split does not work!***
+ - Organise splits into groups
  - Room change splits

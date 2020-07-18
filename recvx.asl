@@ -156,7 +156,6 @@ startup
     settings.Add("weapons", true, "Weapons");
     vars.AddSplit(0x08, "combatKnife", false, "Combat Knife", "weapons");
     vars.AddSplit(0x09, "handgun", false, "Handgun", "weapons");
-    vars.AddSplit(0x05, "handgunB", false, "Handgun B", "weapons");
     vars.AddSplit(0x02, "assaultRifle", false, "Assault Rifle", "weapons");
     vars.AddSplit(0x03, "sniperRifle", false, "Sniper Rifle", "weapons");
     vars.AddSplit(0x04, "shotgun", false, "Shotgun", "weapons");
@@ -166,7 +165,6 @@ startup
     vars.AddSplit(0x0B, "linearLauncher", false, "Linear Launcher", "weapons");
     vars.AddSplit(0x20, "magnum", false, "Magnum", "weapons");
     vars.AddSplit(0x21, "goldLugers", false, "Gold Lugers", "weapons");
-    vars.AddSplit(0x22, "subMachineGun", false, "Sub Machine Gun", "weapons");
 }
 
 init

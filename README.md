@@ -1,6 +1,5 @@
 # Resident Evil/BioHazard Code: Veronica Auto Splitter
 
-## Info
 Auto Splitter for Resident Evil/BioHazard Code: Veronica for RPCS3 and PCSX2 emulators. This Auto Splitter allows you to create splits for item pickups and compare against in game time.
 
 ## Supported Games
@@ -17,3 +16,7 @@ PlayStation 2 releases:
   - [**SLPM-650.22**] [JP] BioHazard Code: Veronica Kanzenban 
   - [**SLUS-201.84**] [US] Resident Evil Code: Veronica X
   - [**SLES-503.06**] [EU] Resident Evil Code: Veronica X
+
+## TODO/Bugs
+ - ***End Game split does not work!***
+ - Room change splits

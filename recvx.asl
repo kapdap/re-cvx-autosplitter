@@ -210,7 +210,7 @@ init
                 vars.inventoryAdr = 0x300BB3788;
                 break;
                 
-            case "NPEB0053":
+            case "NPEB00553":
                 vars.timeAdr = 0x300BC40B8;
                 vars.roomAdr = 0x300BC40CC;
                 vars.characterAdr = 0x300BDE87E;

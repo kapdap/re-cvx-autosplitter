@@ -265,20 +265,22 @@ init
         current.time = !vars.isBigEndian ? time : vars.SwapEndiannessInt(time);
         current.room = !vars.isBigEndian ? room : vars.SwapEndianness(room);
         current.rank = rank;
-        current.inventory = new byte[11];
+        current.inventory = new byte[44];
         
+		int index = -1;
         int offset = vars.isReverseOrder ? 0x2 : 0x1;
         
         for (int x = 0; x < 4; ++x)
         { 
             IntPtr ptr = IntPtr.Add(new IntPtr(vars.inventoryAdr), x * 0x40 + offset);
-            for (int i = 0; i < current.inventory.Length; ++i)
+            for (int i = 0; i < 11; ++i)
             {
                 ptr = IntPtr.Add(ptr, 0x4);
 
                 byte item = 0;
                 memory.ReadValue<byte>(ptr, out item);
-                current.inventory[i] = item;
+				
+                current.inventory[++index] = item;
             }
         }
     });

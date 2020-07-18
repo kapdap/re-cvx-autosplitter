@@ -57,7 +57,7 @@ startup
     });
 
     settings.Add("events", true, "Events");
-    vars.AddEvent("endGame", false, "End Game", "events");
+    vars.AddEvent("endGame", true, "End Game", "events");
 
     settings.Add("keygroup", true, "Keys"); 
     vars.AddSplit(0x47, "airForceProof", false, "Air Force Proof", "keygroup");
@@ -183,7 +183,6 @@ init
                 vars.timeAdr = 0x204314A0;
                 vars.roomAdr = 0x204314B5;
                 vars.rankAdr = 0x204F5C90;
-                vars.characterAdr = 0x2044BC64;
                 vars.inventoryAdr = 0x20430E70;
                 break;
                 
@@ -191,7 +190,6 @@ init
                 vars.timeAdr = 0x204339A0;
                 vars.roomAdr = 0x204339B5;
                 vars.rankAdr = 0x204F8190;
-                vars.characterAdr = 0x2044E164;
                 vars.inventoryAdr = 0x20433370;
                 break;
                 
@@ -199,7 +197,6 @@ init
                 vars.timeAdr = 0x2044A1D0;
                 vars.roomAdr = 0x2044A1E5;
                 vars.rankAdr = 0x2050E9C0;
-                vars.characterAdr = 0x20464994;
                 vars.inventoryAdr = 0x20449BA0;
                 break;
                 
@@ -207,7 +204,6 @@ init
                 vars.timeAdr = 0x300BB3DB8;
                 vars.roomAdr = 0x300BB3DCC;
                 vars.rankAdr = 0x300000000; // TODO: Get address
-                vars.characterAdr = 0x300BCE57E;
                 vars.inventoryAdr = 0x300BB3788;
                 break;
                 
@@ -215,15 +211,13 @@ init
                 vars.timeAdr = 0x300BC40B8;
                 vars.roomAdr = 0x300BC40CC;
                 vars.rankAdr = 0x300000000; // TODO: Get address
-                vars.characterAdr = 0x300BDE87E;
                 vars.inventoryAdr = 0x300BC3A88;
                 break;
-                
+            
             default: // NPJB00135
                 vars.timeAdr = 0x300BB3E38;
                 vars.roomAdr = 0x300BB3E4C;
                 vars.rankAdr = 0x300000000; // TODO: Get address
-                vars.characterAdr = 0x300BCE5FE;
                 vars.inventoryAdr = 0x300BB3808;
                 break;
         }
@@ -262,30 +256,30 @@ init
     vars.UpdateValues = (Action) (() => {
         uint time = 0;
         ushort room = 0;
-        byte rank = 0x00;
-        byte character = 0x00;
+        byte rank = 0x00; 
         
         memory.ReadValue<uint>(new IntPtr(vars.timeAdr), out time);
         memory.ReadValue<ushort>(new IntPtr(vars.roomAdr), out room);
-        memory.ReadValue<byte>(new IntPtr(vars.characterAdr), out character);
         memory.ReadValue<byte>(new IntPtr(vars.rankAdr), out rank);
         
         current.time = !vars.isBigEndian ? time : vars.SwapEndiannessInt(time);
         current.room = !vars.isBigEndian ? room : vars.SwapEndianness(room);
         current.rank = rank;
-        current.character = character;
         current.inventory = new byte[11];
         
         int offset = vars.isReverseOrder ? 0x2 : 0x1;
         
-        IntPtr ptr = IntPtr.Add(new IntPtr(vars.inventoryAdr), current.character * 0x40 + offset);
-        for (int i = 0; i < current.inventory.Length; ++i)
-        {
-            ptr = IntPtr.Add(ptr, 0x4);
-            
-            byte item = 0;
-            memory.ReadValue<byte>(ptr, out item);
-            current.inventory[i] = item;
+        for (int x = 0; x < 4; ++x)
+        { 
+            IntPtr ptr = IntPtr.Add(new IntPtr(vars.inventoryAdr), x * 0x40 + offset);
+            for (int i = 0; i < current.inventory.Length; ++i)
+            {
+                ptr = IntPtr.Add(ptr, 0x4);
+
+                byte item = 0;
+                memory.ReadValue<byte>(ptr, out item);
+                current.inventory[i] = item;
+            }
         }
     });
     

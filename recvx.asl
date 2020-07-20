@@ -330,10 +330,83 @@ split
     {
         byte item = current.inventory[i];
 
-        if (vars.tracker.ContainsKey(item) && !vars.tracker[item] && item != old.inventory[i])
+        if (item == old.inventory[i]) continue;
+
+        switch (item)
         {
-            vars.tracker[item] = true;
-            return settings[vars.indexer[item]];
+            case 0x47: // Air Force Proof
+                if (current.room == 0x0702 && !vars.events["airForceProof"])
+                {
+                    vars.events["airForceProof"] = true;
+                    return settings["airForceProof"];
+                }
+
+                if (current.room == 0x0108 && !vars.events["airForceProofChris"])
+                {
+                    vars.events["airForceProofChris"] = true;
+                    return settings["airForceProofChris"];
+                }
+                break;
+
+            case 0x4E: // Music Box Plate
+                if (current.room == 0x0502 && !vars.events["musicBoxPlate"])
+                {
+                    vars.events["musicBoxPlate"] = true;
+                    return settings["musicBoxPlate"];
+                }
+
+                if (current.room == 0x1809 && !vars.events["musicBoxPlateChris"])
+                {
+                    vars.events["musicBoxPlateChris"] = true;
+                    return settings["musicBoxPlateChris"];
+                }
+                break;
+
+            case 0x58: // Octo Valve Handle
+                if (current.room == 0x0206 && !vars.events["octaValveHandle"])
+                {
+                    vars.events["octaValveHandle"] = true;
+                    return settings["octaValveHandle"];
+                }
+
+                if (current.room == 0x0609 && !vars.events["octaValveHandleChris"])
+                {
+                    vars.events["octaValveHandleChris"] = true;
+                    return settings["octaValveHandleChris"];
+                }
+                break;
+
+            case 0x38: // Eagle Plate
+                if (current.room == 0x0403 && !vars.events["eaglePlateDiorama"])
+                {
+                    vars.events["eaglePlateDiorama"] = true;
+                    return settings["eaglePlateDiorama"];
+                }
+
+                if (current.room == 0x0601 && !vars.events["eaglePlateUmbrella"])
+                {
+                    vars.events["eaglePlateUmbrella"] = true;
+                    return settings["eaglePlateUmbrella"];
+                }
+
+                if (current.room == 0x0A07 && !vars.events["eaglePlateWaterPool"])
+                {
+                    vars.events["eaglePlateWaterPool"] = true;
+                    return settings["eaglePlateWaterPool"];
+                }
+                break;
+
+            /*case 0x78:
+                // TODO: Track individual Wing Object pickups
+                break;*/
+
+            default:
+                if (vars.tracker.ContainsKey(item) && !vars.tracker[item])
+                {
+                    vars.tracker[item] = true;
+                    return settings[vars.indexer[item]];
+                }
+                break;
         }
     }
 

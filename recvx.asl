@@ -197,21 +197,21 @@ init
         {
             case "SLPM_650.22":
                 vars.timeAdr = 0x204314A0;
-                vars.roomAdr = 0x204314B5;
+                vars.roomAdr = 0x204314B4;
                 vars.rankAdr = 0x204F5C90;
                 vars.inventoryAdr = 0x20430E70;
                 break;
 
             case "SLUS_201.84":
                 vars.timeAdr = 0x204339A0;
-                vars.roomAdr = 0x204339B5;
+                vars.roomAdr = 0x204339B4;
                 vars.rankAdr = 0x204F8190;
                 vars.inventoryAdr = 0x20433370;
                 break;
 
             case "SLES_503.06":
                 vars.timeAdr = 0x2044A1D0;
-                vars.roomAdr = 0x2044A1E5;
+                vars.roomAdr = 0x2044A1E4;
                 vars.rankAdr = 0x2050E9C0;
                 vars.inventoryAdr = 0x20449BA0;
                 break;

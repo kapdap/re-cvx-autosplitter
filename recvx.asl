@@ -282,7 +282,7 @@ init
         memory.ReadValue<byte>(new IntPtr(vars.rankAdr), out rank);
 
         current.time = !vars.isBigEndian ? time : vars.SwapEndiannessInt(time);
-        current.room = room;
+        current.room = !vars.isBigEndian ? vars.SwapEndianness(room) : room;
         current.rank = rank;
         current.inventory = new byte[44];
 
@@ -338,13 +338,13 @@ split
         switch (item)
         {
             case 0x47: // Air Force Proof
-                if (current.room == 0x0702 && !vars.events["airForceProof"])
+                if (current.room == 0x0207 && !vars.events["airForceProof"])
                 {
                     vars.events["airForceProof"] = true;
                     return settings["airForceProof"];
                 }
 
-                if (current.room == 0x0108 && !vars.events["airForceProofChris"])
+                if (current.room == 0x0801 && !vars.events["airForceProofChris"])
                 {
                     vars.events["airForceProofChris"] = true;
                     return settings["airForceProofChris"];
@@ -352,13 +352,13 @@ split
                 break;
 
             case 0x4E: // Music Box Plate
-                if (current.room == 0x0502 && !vars.events["musicBoxPlate"])
+                if (current.room == 0x0205 && !vars.events["musicBoxPlate"])
                 {
                     vars.events["musicBoxPlate"] = true;
                     return settings["musicBoxPlate"];
                 }
 
-                if (current.room == 0x1809 && !vars.events["musicBoxPlateChris"])
+                if (current.room == 0x0918 && !vars.events["musicBoxPlateChris"])
                 {
                     vars.events["musicBoxPlateChris"] = true;
                     return settings["musicBoxPlateChris"];
@@ -366,13 +366,13 @@ split
                 break;
 
             case 0x58: // Octo Valve Handle
-                if (current.room == 0x0206 && !vars.events["octaValveHandle"])
+                if (current.room == 0x0602 && !vars.events["octaValveHandle"])
                 {
                     vars.events["octaValveHandle"] = true;
                     return settings["octaValveHandle"];
                 }
 
-                if (current.room == 0x0609 && !vars.events["octaValveHandleChris"])
+                if (current.room == 0x0906 && !vars.events["octaValveHandleChris"])
                 {
                     vars.events["octaValveHandleChris"] = true;
                     return settings["octaValveHandleChris"];
@@ -380,19 +380,19 @@ split
                 break;
 
             case 0x38: // Eagle Plate
-                if (current.room == 0x0403 && !vars.events["eaglePlateDiorama"])
+                if (current.room == 0x0304 && !vars.events["eaglePlateDiorama"])
                 {
                     vars.events["eaglePlateDiorama"] = true;
                     return settings["eaglePlateDiorama"];
                 }
 
-                if (current.room == 0x0601 && !vars.events["eaglePlateUmbrella"])
+                if (current.room == 0x0106 && !vars.events["eaglePlateUmbrella"])
                 {
                     vars.events["eaglePlateUmbrella"] = true;
                     return settings["eaglePlateUmbrella"];
                 }
 
-                if (current.room == 0x0A07 && !vars.events["eaglePlateWaterPool"])
+                if (current.room == 0x070A && !vars.events["eaglePlateWaterPool"])
                 {
                     vars.events["eaglePlateWaterPool"] = true;
                     return settings["eaglePlateWaterPool"];

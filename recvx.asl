@@ -282,7 +282,7 @@ init
         memory.ReadValue<byte>(new IntPtr(vars.rankAdr), out rank);
 
         current.time = !vars.isBigEndian ? time : vars.SwapEndiannessInt(time);
-        current.room = !vars.isBigEndian ? room : vars.SwapEndianness(room);
+        current.room = room;
         current.rank = rank;
         current.inventory = new byte[44];
 

@@ -222,21 +222,21 @@ init
             case "NPUB30467":
                 vars.timeAdr = 0x300BB3DB8;
                 vars.roomAdr = 0x300BB3DCC;
-                vars.rankAdr = 0x300000000; // TODO: Get address
+                vars.rankAdr = 0x300BB3565;
                 vars.inventoryAdr = 0x300BB3788;
                 break;
 
             case "NPEB00553":
                 vars.timeAdr = 0x300BC40B8;
                 vars.roomAdr = 0x300BC40CC;
-                vars.rankAdr = 0x300000000; // TODO: Get address
+                vars.rankAdr = 0x300BC3865;
                 vars.inventoryAdr = 0x300BC3A88;
                 break;
 
             default: // NPJB00135
                 vars.timeAdr = 0x300BB3E38;
                 vars.roomAdr = 0x300BB3E4C;
-                vars.rankAdr = 0x300000000; // TODO: Get address
+                vars.rankAdr = 0x300BB35E5;
                 vars.inventoryAdr = 0x300BB3808;
                 break;
         }

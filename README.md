@@ -16,8 +16,3 @@ PlayStation 2 releases:
   - [**SLPM-650.22**] [JP] BioHazard Code: Veronica Kanzenban 
   - [**SLUS-201.84**] [US] Resident Evil Code: Veronica X
   - [**SLES-503.06**] [EU] Resident Evil Code: Veronica X
-
-## TODO/Bugs
- - ***End Game split does not work!***
- - Organise splits into groups
- - Room change splits

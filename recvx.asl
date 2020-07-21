@@ -1,6 +1,6 @@
 // Resident Evil/BIOHAZARD Code Veronica X
 // By Kapdap 2020/07/16
-// Last updated 2020/07/18
+// Last updated 2020/07/21
 // https://github.com/kapdap/re-cvx-autosplitter
 
 state("rpcs3") {}

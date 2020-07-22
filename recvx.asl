@@ -179,7 +179,7 @@ startup
     vars.AddSplit(0x88, "lugerReplica", false, "Luger Replica", "othergroup");
     vars.AddSplit(0x73, "serum", false, "Serum", "othergroup");
 
-    settings.Add("otherweapongroup", true, "Other (Weapons)");
+    settings.Add("otherweapongroup", false, "Other (Weapons)");
     vars.AddSplit(0x02, "assaultRifle", false, "Assault Rifle", "otherweapongroup");
     vars.AddSplit(0x0A, "customHandgun", false, "Custom Handgun", "otherweapongroup");
     vars.AddSplit(0x83, "enhancedHandgun", false, "Enhanced Handgun", "otherweapongroup");
@@ -202,6 +202,7 @@ init
                 vars.timeAdr = 0x204314A0;
                 vars.roomAdr = 0x204314B4;
                 vars.rankAdr = 0x204F5C90;
+                vars.healthAdr = 0x204301FC;
                 vars.inventoryAdr = 0x20430E70;
                 break;
 
@@ -209,6 +210,7 @@ init
                 vars.timeAdr = 0x204339A0;
                 vars.roomAdr = 0x204339B4;
                 vars.rankAdr = 0x204F8190;
+                vars.healthAdr = 0x204326FC;
                 vars.inventoryAdr = 0x20433370;
                 break;
 
@@ -216,6 +218,7 @@ init
                 vars.timeAdr = 0x2044A1D0;
                 vars.roomAdr = 0x2044A1E4;
                 vars.rankAdr = 0x2050E9C0;
+                vars.healthAdr = 0x20448F2C;
                 vars.inventoryAdr = 0x20449BA0;
                 break;
 
@@ -223,6 +226,7 @@ init
                 vars.timeAdr = 0x300BB3DB8;
                 vars.roomAdr = 0x300BB3DCC;
                 vars.rankAdr = 0x300BB3565;
+                vars.healthAdr = 0x300BDEA1F;
                 vars.inventoryAdr = 0x300BB3788;
                 break;
 
@@ -230,6 +234,7 @@ init
                 vars.timeAdr = 0x300BC40B8;
                 vars.roomAdr = 0x300BC40CC;
                 vars.rankAdr = 0x300BC3865;
+                vars.healthAdr = 0x300BEED1F;
                 vars.inventoryAdr = 0x300BC3A88;
                 break;
 
@@ -237,6 +242,7 @@ init
                 vars.timeAdr = 0x300BB3E38;
                 vars.roomAdr = 0x300BB3E4C;
                 vars.rankAdr = 0x300BB35E5;
+                vars.healthAdr = 0x300BDEA9F;
                 vars.inventoryAdr = 0x300BB3808;
                 break;
         }
@@ -276,14 +282,17 @@ init
         uint time = 0;
         ushort room = 0;
         byte rank = 0x00;
+        byte health = 0x00;
 
         memory.ReadValue<uint>(new IntPtr(vars.timeAdr), out time);
         memory.ReadValue<ushort>(new IntPtr(vars.roomAdr), out room);
         memory.ReadValue<byte>(new IntPtr(vars.rankAdr), out rank);
+        memory.ReadValue<byte>(new IntPtr(vars.healthAdr), out health);
 
-        current.time = !vars.isBigEndian ? time : vars.SwapEndiannessInt(time);
-        current.room = !vars.isBigEndian ? vars.SwapEndianness(room) : room;
+        current.time = vars.isBigEndian ? vars.SwapEndiannessInt(time) : time;
+        current.room = vars.isReverseOrder ? vars.SwapEndianness(room) : room;
         current.rank = rank;
+        current.health = health;
         current.inventory = new byte[44];
 
         int index = -1;

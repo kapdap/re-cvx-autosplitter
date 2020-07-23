@@ -6,6 +6,8 @@ compare against in game time. Additionaly, character health can be displayed in
 LiveSplit with the [ASL Var Viewer](https://github.com/hawkerm/LiveSplit.ASLVarViewer)
 component.
 
+*Last Update: 2020-07-23T21:15:00+1200*
+
 ## Supported Games
 The following emulators and game releases are currently supported.
 

@@ -1,6 +1,6 @@
 // Resident Evil/BIOHAZARD Code Veronica X
 // By Kapdap 2020/07/16
-// Last updated 2020/07/21
+// Last updated 2020/07/23
 // https://github.com/kapdap/re-cvx-autosplitter
 
 state("rpcs3") {}
@@ -186,6 +186,11 @@ startup
     vars.AddSplit(0x8E, "m1p", false, "M-100P", "otherweapongroup");
     vars.AddSplit(0x20, "magnum", false, "Magnum", "otherweapongroup");
     vars.AddSplit(0x03, "sniperRifle", false, "Sniper Rifle", "otherweapongroup");
+
+    settings.Add("infogroup", false, "Info");
+    settings.Add("infogroup1", false, "Resident Evil: Code: Veronica Auto Splitter by Kapdap", "infogroup");
+    settings.Add("infogroup2", false, "Website: https://github.com/kapdap/re-cvx-autosplitter", "infogroup");
+    settings.Add("infogroup3", false, "Last Update: 2020-07-23T21:15:00+1200", "infogroup");
 }
 
 init

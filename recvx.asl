@@ -295,7 +295,7 @@ init
         memory.ReadValue<byte>(new IntPtr(vars.healthAdr), out health);
 
         current.time = vars.isBigEndian ? vars.SwapEndiannessInt(time) : time;
-        current.room = vars.isReverseOrder ? vars.SwapEndianness(room) : room;
+        current.room = vars.SwapEndianness(room);
         current.rank = rank;
         current.health = health;
         current.inventory = new byte[44];

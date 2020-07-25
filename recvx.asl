@@ -1,6 +1,6 @@
 // Resident Evil/BIOHAZARD Code Veronica X
 // By Kapdap 2020/07/16
-// Last updated 2020/07/23
+// Last updated 2020/07/25
 // https://github.com/kapdap/re-cvx-autosplitter
 
 state("rpcs3") {}
@@ -190,7 +190,7 @@ startup
     settings.Add("infogroup", false, "Info");
     settings.Add("infogroup1", false, "Resident Evil: Code: Veronica Auto Splitter by Kapdap", "infogroup");
     settings.Add("infogroup2", false, "Website: https://github.com/kapdap/re-cvx-autosplitter", "infogroup");
-    settings.Add("infogroup3", false, "Last Update: 2020-07-24T11:10:00+1200", "infogroup");
+    settings.Add("infogroup3", false, "Last Update: 2020-07-25T21:30:00+1200", "infogroup");
 }
 
 init
@@ -427,7 +427,8 @@ split
         }
     }
 
-    if (current.rank != 0x00 && !vars.events["endGame"])
+    if ((vars.gameProcess == "pcsx2" current.rank != 0x00 && !vars.events["endGame"]) ||
+        (vars.gameProcess == "rpcs3" current.rank == 0x04 && !vars.events["endGame"]))
     {
         vars.events["endGame"] = true;
         return settings["endGame"];

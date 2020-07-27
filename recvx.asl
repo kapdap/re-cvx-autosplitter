@@ -118,10 +118,6 @@ startup
     vars.AddSplit(0x42, "goldDragonfly", false, "Gold Dragonfly", "dragonflygroup");
     vars.AddSplit(0x4F, "goldDragonflyObject", false, "Gold Dragonfly (No Wings)", "dragonflygroup");
     vars.AddSplit(0x78, "wingObject", false, "Wing Object (First Pickup)", "dragonflygroup");
-    //vars.AddEvent("wingObject1", false, "Wing Object (1st)", "dragonflygroup");
-    //vars.AddEvent("wingObject2", false, "Wing Object (2nd)", "dragonflygroup");
-    //vars.AddEvent("wingObject3", false, "Wing Object (3rd)", "dragonflygroup");
-    //vars.AddEvent("wingObject4", false, "Wing Object (4th)", "dragonflygroup");
 
     settings.Add("antgroup", true, "Ants");
     vars.AddSplit(0x3C, "queenAntObject", false, "Queen Ant Object", "antgroup");
@@ -412,10 +408,6 @@ split
                     return settings["eaglePlateWaterPool"];
                 }
                 break;
-
-            /*case 0x78:
-                // TODO: Track individual Wing Object pickups
-                break;*/
 
             default:
                 if (vars.tracker.ContainsKey(item) && !vars.tracker[item])

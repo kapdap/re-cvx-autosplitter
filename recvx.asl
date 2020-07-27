@@ -186,7 +186,7 @@ startup
     settings.Add("infogroup", false, "Info");
     settings.Add("infogroup1", false, "Resident Evil: Code: Veronica Auto Splitter by Kapdap", "infogroup");
     settings.Add("infogroup2", false, "Website: https://github.com/kapdap/re-cvx-autosplitter", "infogroup");
-    settings.Add("infogroup3", false, "Last Update: 2020-07-28T07:10:00+120", "infogroup");
+    settings.Add("infogroup3", false, "Last Update: 2020-07-28T09:00:00+120", "infogroup");
 }
 
 init
@@ -202,7 +202,7 @@ init
             case "SLPM_650.22":
                 vars.timeAdr = 0x204314A0;
                 vars.roomAdr = 0x204314B4;
-                vars.rankAdr = 0x204F5C90;
+                vars.rankAdr = 0x20430C4C;
                 vars.healthAdr = 0x204301FC;
                 vars.inventoryAdr = 0x20430E70;
                 break;
@@ -210,7 +210,7 @@ init
             case "SLUS_201.84":
                 vars.timeAdr = 0x204339A0;
                 vars.roomAdr = 0x204339B4;
-                vars.rankAdr = 0x204F8190;
+                vars.rankAdr = 0x2043314C;
                 vars.healthAdr = 0x204326FC;
                 vars.inventoryAdr = 0x20433370;
                 break;
@@ -218,7 +218,7 @@ init
             case "SLES_503.06":
                 vars.timeAdr = 0x2044A1D0;
                 vars.roomAdr = 0x2044A1E4;
-                vars.rankAdr = 0x2050E9C0;
+                vars.rankAdr = 0x2044997C;
                 vars.healthAdr = 0x20448F2C;
                 vars.inventoryAdr = 0x20449BA0;
                 break;
@@ -419,8 +419,7 @@ split
         }
     }
 
-    if ((vars.gameProcess == "pcsx2" && current.rank != 0x00 && !vars.events["endGame"]) ||
-        (vars.gameProcess == "rpcs3" && current.rank == 0x04 && !vars.events["endGame"]))
+    if (current.rank == 0x04 && !vars.events["endGame"])
     {
         vars.events["endGame"] = true;
         return settings["endGame"];

@@ -83,6 +83,22 @@ startup
     vars.AddSplit(0x36, "craneKey", false, "Crane Key", "keyantarcticagroup");
     vars.AddSplit(0x5C, "sterileRoomKey", false, "Sterile Room Key", "keyantarcticagroup");
 
+    settings.Add("toolsgroup", true, "Tools");
+    vars.AddSplit(0x52, "extinguisher", false, "Extinguisher", "toolsgroup");
+    vars.AddSplit(0x35, "steeringWheel", false, "Steering Wheel", "toolsgroup");
+    vars.AddSplit(0x4D, "skeletonPicture", false, "Skeleton Picture", "toolsgroup");
+    vars.AddSplit(0x33, "glassEye", false, "Glass Eye", "toolsgroup");
+    vars.AddSplit(0x67, "rustedSword", false, "Rusted Sword", "toolsgroup");
+    vars.AddSplit(0x34, "pianoRoll", false, "Piano Roll", "toolsgroup");
+    vars.AddSplit(0x41, "controlLever", false, "Control Lever", "toolsgroup");
+    vars.AddSplit(0x5B, "barCodeSticker", false, "Bar Code Sticker", "toolsgroup");
+    vars.AddSplit(0x27, "gasMask", false, "Gas Mask", "toolsgroup");
+    vars.AddSplit(0x5E, "batteryPack", false, "Battery Pack", "toolsgroup");
+    vars.AddSplit(0x5D, "doorKnob", false, "Door Knob", "toolsgroup");
+    vars.AddSplit(0x64, "tankObject", false, "Tank Object", "toolsgroup");
+    vars.AddSplit(0x51, "halberd", false, "Halberd", "toolsgroup");
+    vars.AddSplit(0x75, "paperWeight", false, "Paper Weight", "toolsgroup");
+
     settings.Add("cardgroup", true, "Cards");
     vars.AddSplit(0x3E, "biohazardCard", false, "Biohazard Card", "cardgroup");
     vars.AddSplit(0x4C, "emblemCard", false, "Emblem Card", "cardgroup");
@@ -150,26 +166,11 @@ startup
     vars.AddSplit(0x79, "crystal", false, "Crystal", "containers"); // Security Card (as Claire)
     vars.AddSplit(0x6A, "securityFile", false, "Security File", "containers"); // Security Card (as Chris)
 
-    settings.Add("miscgroup", true, "Misc");
-    vars.AddSplit(0x52, "extinguisher", false, "Extinguisher", "miscgroup");
-    vars.AddSplit(0x35, "steeringWheel", false, "Steering Wheel", "miscgroup");
-    vars.AddSplit(0x4D, "skeletonPicture", false, "Skeleton Picture", "miscgroup");
-    vars.AddSplit(0x33, "glassEye", false, "Glass Eye", "miscgroup");
-    vars.AddSplit(0x67, "rustedSword", false, "Rusted Sword", "miscgroup");
-    vars.AddSplit(0x34, "pianoRoll", false, "Piano Roll", "miscgroup");
-    vars.AddSplit(0x41, "controlLever", false, "Control Lever", "miscgroup");
-    vars.AddSplit(0x5B, "barCodeSticker", false, "Bar Code Sticker", "miscgroup");
-    vars.AddSplit(0x27, "gasMask", false, "Gas Mask", "miscgroup");
-    vars.AddSplit(0x5E, "batteryPack", false, "Battery Pack", "miscgroup");
-    vars.AddSplit(0x5D, "doorKnob", false, "Door Knob", "miscgroup");
-    vars.AddSplit(0x64, "tankObject", false, "Tank Object", "miscgroup");
-    vars.AddSplit(0x51, "halberd", false, "Halberd", "miscgroup");
-    vars.AddSplit(0x75, "paperWeight", false, "Paper Weight", "miscgroup");
-
     settings.Add("othergroup", false, "Other");
     vars.AddSplit(0x40, "detonator", false, "Detonator", "othergroup");
     vars.AddSplit(0x95, "emptyExtinguisher", false, "Empty Extinguisher", "othergroup");
     vars.AddSplit(0x68, "hemostatic", false, "Hemostatic", "othergroup");
+    vars.AddSplit(0x49, "idCard", false, "ID Card", "othergroup");
     vars.AddSplit(0x48, "keyWithTag", false, "Key With Tag", "othergroup"); // Storage Key
     vars.AddSplit(0x32, "lockpick", false, "Lockpick", "othergroup");
     vars.AddSplit(0x88, "lugerReplica", false, "Luger Replica", "othergroup");

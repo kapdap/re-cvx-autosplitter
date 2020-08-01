@@ -57,6 +57,10 @@ startup
     });
 
     settings.Add("events", true, "Events");
+    vars.AddEvent("tyrantPlane", false, "Tyrant Plane Fight", "events");
+    vars.AddEvent("antarcticaBase", false, "Antarctica Base", "events");
+    vars.AddEvent("nosferatuFight", false, "Nosferatu Fight", "events");
+    vars.AddEvent("startChris", false, "Start as Chris", "events");
     vars.AddEvent("endGame", true, "End Game", "events");
 
     settings.Add("weapongroup", true, "Weapons");
@@ -188,7 +192,7 @@ startup
     settings.Add("infogroup", false, "Info");
     settings.Add("infogroup1", false, "Resident Evil: Code: Veronica Auto Splitter by Kapdap", "infogroup");
     settings.Add("infogroup2", false, "Website: https://github.com/kapdap/re-cvx-autosplitter", "infogroup");
-    settings.Add("infogroup3", false, "Last Update: 2020-07-28T09:00:00+120", "infogroup");
+    settings.Add("infogroup3", false, "Last Update: 2020-08-01T16:30:00+1200", "infogroup");
 }
 
 init
@@ -433,6 +437,30 @@ split
                 }
                 break;
         }
+    }
+
+    if (current.room == 0x0501 && !vars.events["tyrantPlane"])
+    {
+        vars.events["tyrantPlane"] = true;
+        return settings["tyrantPlane"];
+    }
+
+    if (current.room == 0x0600 && !vars.events["antarcticaBase"])
+    {
+        vars.events["antarcticaBase"] = true;
+        return settings["antarcticaBase"];
+    }
+
+    if (current.room == 0x060A && !vars.events["nosferatuFight"])
+    {
+        vars.events["nosferatuFight"] = true;
+        return settings["nosferatuFight"];
+    }
+
+    if (current.room == 0x0716 && !vars.events["startChris"])
+    {
+        vars.events["startChris"] = true;
+        return settings["startChris"];
     }
 
     if (current.rank == 0x04 && !vars.events["endGame"])

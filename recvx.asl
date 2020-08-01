@@ -62,7 +62,7 @@ startup
     settings.Add("weapongroup", true, "Weapons");
     vars.AddSplit(0x08, "combatKnife", false, "Combat Knife", "weapongroup");
     vars.AddSplit(0x09, "handgun", false, "Handgun", "weapongroup");
-    vars.AddSplit(0x22, "subMachineGun", false, "Sub Machine Gun", "weapongroup");
+    vars.AddEvent("subMachineGun", false, "Sub Machine Gun", "weapongroup");
     vars.AddSplit(0x21, "goldLugers", false, "Gold Lugers", "weapongroup");
     vars.AddSplit(0x06, "grenadeLauncher", false, "Grenade Launcher", "weapongroup");
     vars.AddSplit(0x07, "bowGun", false, "Bow Gun", "weapongroup");
@@ -183,6 +183,7 @@ startup
     vars.AddSplit(0x8E, "m1p", false, "M-100P", "otherweapongroup");
     vars.AddSplit(0x20, "magnum", false, "Magnum", "otherweapongroup");
     vars.AddSplit(0x03, "sniperRifle", false, "Sniper Rifle", "otherweapongroup");
+    vars.AddEvent("subMachineGunChris", false, "Sub Machine Gun (Chris)", "otherweapongroup");
 
     settings.Add("infogroup", false, "Info");
     settings.Add("infogroup1", false, "Resident Evil: Code: Veronica Auto Splitter by Kapdap", "infogroup");
@@ -348,6 +349,20 @@ split
 
         switch (item)
         {
+            case 0x22: // Sub Machine Gun
+                if (current.room == 0x030A && !vars.events["subMachineGun"])
+                {
+                    vars.events["subMachineGun"] = true;
+                    return settings["subMachineGun"];
+                }
+
+                if (current.room == 0x0716 && !vars.events["subMachineGunChris"])
+                {
+                    vars.events["subMachineGunChris"] = true;
+                    return settings["subMachineGunChris"];
+                }
+                break;
+
             case 0x47: // Air Force Proof
                 if (current.room == 0x0207 && !vars.events["airForceProof"])
                 {

@@ -1,6 +1,6 @@
 // Resident Evil/BIOHAZARD Code Veronica X
 // By Kapdap 2020/07/16
-// Last updated 2020/07/28
+// Last updated 2020/08/01
 // https://github.com/kapdap/re-cvx-autosplitter
 
 state("rpcs3") {}
@@ -58,10 +58,13 @@ startup
 
     settings.Add("events", true, "Events");
     vars.AddEvent("tyrantPlane", false, "Tyrant Plane Fight", "events");
+    settings.SetToolTip("tyrantPlane", "Splits when Claire enters the cargo hold.");
     vars.AddEvent("antarcticaBase", false, "Antarctica Base", "events");
     vars.AddEvent("nosferatuFight", false, "Nosferatu Fight", "events");
+    settings.SetToolTip("nosferatuFight", "Splits when Claire and Steve arrive at the helipad.");
     vars.AddEvent("startChris", false, "Start as Chris", "events");
     vars.AddEvent("endGame", true, "End Game", "events");
+    settings.SetToolTip("endGame", "Splits when the game rank screen displays.");
 
     settings.Add("weapongroup", true, "Weapons");
     vars.AddSplit(0x08, "combatKnife", false, "Combat Knife", "weapongroup");
@@ -192,7 +195,7 @@ startup
     settings.Add("infogroup", false, "Info");
     settings.Add("infogroup1", false, "Resident Evil: Code: Veronica Auto Splitter by Kapdap", "infogroup");
     settings.Add("infogroup2", false, "Website: https://github.com/kapdap/re-cvx-autosplitter", "infogroup");
-    settings.Add("infogroup3", false, "Last Update: 2020-08-01T16:30:00+1200", "infogroup");
+    settings.Add("infogroup3", false, "Last Update: 2020-08-01T18:05:00+1200", "infogroup");
 }
 
 init

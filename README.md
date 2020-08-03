@@ -2,11 +2,10 @@
 
 Auto Splitter for Resident Evil/BioHazard Code: Veronica for RPCS3 and PCSX2
 emulators. This Auto Splitter allows you to create splits for item pickups and
-compare against in game time. Additionaly, character health can be displayed in
-LiveSplit with the [ASL Var Viewer](https://github.com/hawkerm/LiveSplit.ASLVarViewer)
-component.
+compare against in game time. Additionaly, character health and equipped weapon
+ammo can be displayed in LiveSplit with the [ASL Var Viewer](https://github.com/hawkerm/LiveSplit.ASLVarViewer) component.
 
-*Last Update: 2020-08-01T18:05:00+1200*
+*Last Update: 2020-08-03T19:20:00+1200*
 
 ## Supported Games
 The following emulators and game releases are currently supported.

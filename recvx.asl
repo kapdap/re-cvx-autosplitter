@@ -308,26 +308,31 @@ init
         memory.ReadValue<byte>(new IntPtr(vars.characterAdr), out character);
 
         current.rank = rank;
-        current.inventory = new byte[44];
         current.time = vars.isBigEndian ? (int)vars.SwapBytesInt(time) : (int)time;
         current.room = vars.SwapBytes(room);
         current.health = (int)health;
         current.character = character;
+        current.inventory = new byte[11];
 
         int index = -1;
-        int offset = vars.isReverseOrder ? 0x2 : 0x1;
 
-        for (int x = 0; x < 4; ++x)
+        IntPtr ptr = IntPtr.Add(new IntPtr(vars.inventoryAdr), character * 0x40);
+        for (int i = 0; i < 11; ++i)
         {
-            IntPtr ptr = IntPtr.Add(new IntPtr(vars.inventoryAdr), x * 0x40 + offset);
-            for (int i = 0; i < 11; ++i)
+            uint item = 0;
+            memory.ReadValue<uint>(ptr, out item);
+            ptr = IntPtr.Add(ptr, 0x4);
+
+            item = vars.isBigEndian ? vars.SwapBytesInt(item) : item;
+
+            if (i <= 0)
             {
-                ptr = IntPtr.Add(ptr, 0x4);
+                continue;
+            }
 
-                byte item = 0;
-                memory.ReadValue<byte>(ptr, out item);
+            byte[] bytes = BitConverter.GetBytes(item);
+            current.inventory[++index] = bytes[2];
 
-                current.inventory[++index] = item;
             }
         }
     });

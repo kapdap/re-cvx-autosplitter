@@ -308,6 +308,8 @@ init
         memory.ReadValue<byte>(new IntPtr(vars.characterAdr), out character);
 
         current.rank = rank;
+        current.slot = 0;
+        current.ammo = 0;
         current.time = vars.isBigEndian ? (int)vars.SwapBytesInt(time) : (int)time;
         current.room = vars.SwapBytes(room);
         current.health = (int)health;
@@ -327,12 +329,16 @@ init
 
             if (i <= 0)
             {
+                current.slot = item;
                 continue;
             }
 
             byte[] bytes = BitConverter.GetBytes(item);
             current.inventory[++index] = bytes[2];
 
+            if (current.slot == (index + 1))
+            {
+                current.ammo = BitConverter.ToInt16(bytes, 0);
             }
         }
     });

@@ -300,10 +300,10 @@ init
         memory.ReadValue<byte>(new IntPtr(vars.healthAdr), out health);
 
         current.rank = rank;
-        current.health = health;
         current.inventory = new byte[44];
         current.time = vars.isBigEndian ? (int)vars.SwapBytesInt(time) : (int)time;
         current.room = vars.SwapBytes(room);
+        current.health = (int)health;
 
         int index = -1;
         int offset = vars.isReverseOrder ? 0x2 : 0x1;

@@ -42,14 +42,14 @@ startup
         }
     });
 
-    vars.SwapEndianness = (Func<ushort, ushort>)((value) => {
+    vars.SwapBytes = (Func<ushort, ushort>)((value) => {
         int b1 = (value >> 0) & 0xff;
         int b2 = (value >> 8) & 0xff;
 
         return (ushort) (b1 << 8 | b2 << 0);
     });
 
-    vars.SwapEndiannessInt = (Func<uint, uint>)((value) => {
+    vars.SwapBytesInt = (Func<uint, uint>)((value) => {
         return ((value & 0x000000ff) << 24) +
             ((value & 0x0000ff00) << 8) +
             ((value & 0x00ff0000) >> 8) +
@@ -299,11 +299,11 @@ init
         memory.ReadValue<byte>(new IntPtr(vars.rankAdr), out rank);
         memory.ReadValue<byte>(new IntPtr(vars.healthAdr), out health);
 
-        current.time = vars.isBigEndian ? vars.SwapEndiannessInt(time) : time;
-        current.room = vars.SwapEndianness(room);
         current.rank = rank;
         current.health = health;
         current.inventory = new byte[44];
+        current.time = vars.isBigEndian ? (int)vars.SwapBytesInt(time) : (int)time;
+        current.room = vars.SwapBytes(room);
 
         int index = -1;
         int offset = vars.isReverseOrder ? 0x2 : 0x1;

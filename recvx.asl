@@ -213,6 +213,7 @@ init
                 vars.roomAdr = 0x204314B4;
                 vars.rankAdr = 0x20430C4C;
                 vars.healthAdr = 0x204301FC;
+                vars.characterAdr = 0x20430C84;
                 vars.inventoryAdr = 0x20430E70;
                 break;
 
@@ -221,6 +222,7 @@ init
                 vars.roomAdr = 0x204339B4;
                 vars.rankAdr = 0x2043314C;
                 vars.healthAdr = 0x204326FC;
+                vars.characterAdr = 0x20433184;
                 vars.inventoryAdr = 0x20433370;
                 break;
 
@@ -229,6 +231,7 @@ init
                 vars.roomAdr = 0x2044A1E4;
                 vars.rankAdr = 0x2044997C;
                 vars.healthAdr = 0x20448F2C;
+                vars.characterAdr = 0x204499B4;
                 vars.inventoryAdr = 0x20449BA0;
                 break;
 
@@ -237,6 +240,7 @@ init
                 vars.roomAdr = 0x300BB3DCC;
                 vars.rankAdr = 0x300BB3565;
                 vars.healthAdr = 0x300BDEA1F;
+                vars.characterAdr = 0x300BB359C;
                 vars.inventoryAdr = 0x300BB3788;
                 break;
 
@@ -245,6 +249,7 @@ init
                 vars.roomAdr = 0x300BC40CC;
                 vars.rankAdr = 0x300BC3865;
                 vars.healthAdr = 0x300BEED1F;
+                vars.characterAdr = 0x300BC389C;
                 vars.inventoryAdr = 0x300BC3A88;
                 break;
 
@@ -253,6 +258,7 @@ init
                 vars.roomAdr = 0x300BB3E4C;
                 vars.rankAdr = 0x300BB35E5;
                 vars.healthAdr = 0x300BDEA9F;
+                vars.characterAdr = 0x300BB361C;
                 vars.inventoryAdr = 0x300BB3808;
                 break;
         }
@@ -293,17 +299,20 @@ init
         ushort room = 0;
         byte rank = 0x00;
         byte health = 0x00;
+        byte character = 0x00;
 
         memory.ReadValue<uint>(new IntPtr(vars.timeAdr), out time);
         memory.ReadValue<ushort>(new IntPtr(vars.roomAdr), out room);
         memory.ReadValue<byte>(new IntPtr(vars.rankAdr), out rank);
         memory.ReadValue<byte>(new IntPtr(vars.healthAdr), out health);
+        memory.ReadValue<byte>(new IntPtr(vars.characterAdr), out character);
 
         current.rank = rank;
         current.inventory = new byte[44];
         current.time = vars.isBigEndian ? (int)vars.SwapBytesInt(time) : (int)time;
         current.room = vars.SwapBytes(room);
         current.health = (int)health;
+        current.character = character;
 
         int index = -1;
         int offset = vars.isReverseOrder ? 0x2 : 0x1;

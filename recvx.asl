@@ -319,7 +319,7 @@ init
         int index = -1;
 
         IntPtr ptr = IntPtr.Add(new IntPtr(vars.inventoryAdr), character * 0x40);
-        for (int i = 0; i < 11; ++i)
+        for (int i = 0; i < 12; ++i)
         {
             uint item = 0;
             memory.ReadValue<uint>(ptr, out item);

@@ -8,24 +8,36 @@ state("pcsx2") {}
 
 startup
 {
-    // Inventory split tracking
-    vars.indexer = new Dictionary<byte, string>();
+    // Split tracker
+    vars.splits = new Dictionary<string, bool>();
+
+    // Inventory split tracker
     vars.tracker = new Dictionary<byte, bool>();
+    vars.indexer = new Dictionary<byte, string>();
 
-    // Event split tracking
-    vars.events = new Dictionary<string, bool>();
+    // Adds a split
+    vars.AddSplit = (Action<string, bool, string, string>)((id, default_value, description, parent) => {
+        vars.splits.Add(id, false);
+        settings.Add(id, default_value, description, parent);
+    });
 
-    vars.AddSplit = (Action<byte, string, bool, string, string>)((code, id, default_value, description, parent) => {
-        vars.indexer.Add(code, id);
+    // Adds an inventory split
+    vars.AddTracker = (Action<byte, string, bool, string, string>)((code, id, default_value, description, parent) => {
         vars.tracker.Add(code, false);
+        vars.indexer.Add(code, id);  // Map item code to split name
         settings.Add(id, default_value, description, parent);
     });
 
-    vars.AddEvent = (Action<string, bool, string, string>)((id, default_value, description, parent) => {
-        vars.events.Add(id, false);
-        settings.Add(id, default_value, description, parent);
+    // Resets split tracker
+    vars.ResetSplits = (Action) (() => {
+        List<string> keys = new List<string>(vars.splits.Keys);
+        foreach(string key in keys)
+        {
+            vars.splits[key] = false;
+        }
     });
 
+    // Resets inventory split tracker
     vars.ResetTracker = (Action) (() => {
         List<byte> keys = new List<byte>(vars.tracker.Keys);
         foreach(byte key in keys)
@@ -34,14 +46,7 @@ startup
         }
     });
 
-    vars.ResetEvents = (Action) (() => {
-        List<string> keys = new List<string>(vars.events.Keys);
-        foreach(string key in keys)
-        {
-            vars.events[key] = false;
-        }
-    });
-
+    // Swaps 2 byte values
     vars.SwapBytes = (Func<ushort, ushort>)((value) => {
         int b1 = (value >> 0) & 0xff;
         int b2 = (value >> 8) & 0xff;
@@ -49,6 +54,7 @@ startup
         return (ushort) (b1 << 8 | b2 << 0);
     });
 
+    // Swaps 4 byte values
     vars.SwapBytesInt = (Func<uint, uint>)((value) => {
         return ((value & 0x000000ff) << 24) +
             ((value & 0x0000ff00) << 8) +
@@ -57,141 +63,151 @@ startup
     });
 
     settings.Add("events", true, "Events");
-    vars.AddEvent("tyrantPlane", false, "Tyrant Plane Fight", "events");
-    settings.SetToolTip("tyrantPlane", "Splits when Claire enters the cargo hold.");
-    vars.AddEvent("antarcticaBase", false, "Antarctica Base", "events");
-    vars.AddEvent("nosferatuFight", false, "Nosferatu Fight", "events");
-    settings.SetToolTip("nosferatuFight", "Splits when Claire and Steve arrive at the helipad.");
-    vars.AddEvent("startChris", false, "Start as Chris", "events");
-    vars.AddEvent("endGame", true, "End Game", "events");
-    settings.SetToolTip("endGame", "Splits when the game rank screen displays.");
+    vars.AddSplit("tyrantPlane", false, "Tyrant Plane Fight", "events");
+    settings.SetToolTip("tyrantPlane", "Splits when Claire opens the door to the cargo hold");
+    vars.AddSplit("antarcticaBase", false, "Antartic Transport Terminal", "events");
+    settings.SetToolTip("antarcticaBase", "Splits during the cutscene when the plane crashes into the Antartic Transport Terminal");
+    vars.AddSplit("nosferatuFight", false, "Nosferatu Fight", "events");
+    settings.SetToolTip("nosferatuFight", "Splits during the cutscene when Claire and Steve arrive at the helipad");
+    vars.AddSplit("startChris", false, "Start as Chris", "events");
+    settings.SetToolTip("startChris", "Splits during cutscene when Chris arrives at Rockfort Island");
+    vars.AddSplit("endGame", true, "End Game", "events");
+    settings.SetToolTip("endGame", "Splits when the game rank screen displays");
 
     settings.Add("weapongroup", true, "Weapons");
-    vars.AddSplit(0x08, "combatKnife", false, "Combat Knife", "weapongroup");
-    vars.AddSplit(0x09, "handgun", false, "Handgun", "weapongroup");
-    vars.AddEvent("subMachineGun", false, "Sub Machine Gun", "weapongroup");
-    vars.AddSplit(0x21, "goldLugers", false, "Gold Lugers", "weapongroup");
-    vars.AddSplit(0x06, "grenadeLauncher", false, "Grenade Launcher", "weapongroup");
-    vars.AddSplit(0x07, "bowGun", false, "Bow Gun", "weapongroup");
-    vars.AddSplit(0x04, "shotgun", false, "Shotgun", "weapongroup");
-    vars.AddSplit(0x0B, "linearLauncher", false, "Linear Launcher", "weapongroup");
+    vars.AddSplit("combatKnife", false, "Combat Knife", "weapongroup");
+    vars.AddTracker(0x09, "handgun", false, "Handgun", "weapongroup");
+    vars.AddSplit("subMachineGun", false, "Sub Machine Gun", "weapongroup");
+    vars.AddTracker(0x21, "goldLugers", false, "Gold Lugers", "weapongroup");
+    vars.AddTracker(0x06, "grenadeLauncher", false, "Grenade Launcher", "weapongroup");
+    vars.AddTracker(0x07, "bowGun", false, "Bow Gun", "weapongroup");
+    vars.AddTracker(0x04, "shotgun", false, "Shotgun", "weapongroup");
+    vars.AddTracker(0x0B, "linearLauncher", false, "Linear Launcher", "weapongroup");
 
     settings.Add("keygroup", true, "Keys (Rockfort)");
-    vars.AddSplit(0x54, "padlockKey", false, "Padlock Key", "keygroup");
-    vars.AddSplit(0x44, "goldKey", false, "Gold Key", "keygroup");
-    vars.AddSplit(0x43, "silverKey", false, "Silver Key", "keygroup");
-    vars.AddSplit(0x4B, "airportKey", false, "Airport Key", "keygroup");
-    vars.AddSplit(0x61, "chemStorageKey", false, "Chem. Storage Key", "keygroup");
-    vars.AddSplit(0x60, "turnTableKey", false, "Turn Table Key", "keygroup");
+    vars.AddTracker(0x54, "padlockKey", false, "Padlock Key", "keygroup");
+    vars.AddTracker(0x44, "goldKey", false, "Gold Key", "keygroup");
+    vars.AddTracker(0x43, "silverKey", false, "Silver Key", "keygroup");
+    vars.AddTracker(0x4B, "airportKey", false, "Airport Key", "keygroup");
+    vars.AddTracker(0x61, "chemStorageKey", false, "Chem. Storage Key", "keygroup");
+    vars.AddTracker(0x60, "turnTableKey", false, "Turn Table Key", "keygroup");
 
     settings.Add("keyantarcticagroup", true, "Keys (Antarctica)");
-    vars.AddSplit(0x5A, "miningRoomKey", false, "Mining Room Key", "keyantarcticagroup");
-    vars.AddSplit(0x59, "machineRoomKey", false, "Machine Room Key", "keyantarcticagroup");
-    vars.AddSplit(0x36, "craneKey", false, "Crane Key", "keyantarcticagroup");
-    vars.AddSplit(0x5C, "sterileRoomKey", false, "Sterile Room Key", "keyantarcticagroup");
+    vars.AddTracker(0x5A, "miningRoomKey", false, "Mining Room Key", "keyantarcticagroup");
+    vars.AddTracker(0x59, "machineRoomKey", false, "Machine Room Key", "keyantarcticagroup");
+    vars.AddTracker(0x36, "craneKey", false, "Crane Key", "keyantarcticagroup");
+    vars.AddTracker(0x5C, "sterileRoomKey", false, "Sterile Room Key", "keyantarcticagroup");
 
     settings.Add("toolsgroup", true, "Tools");
-    vars.AddSplit(0x52, "extinguisher", false, "Extinguisher", "toolsgroup");
-    vars.AddSplit(0x35, "steeringWheel", false, "Steering Wheel", "toolsgroup");
-    vars.AddSplit(0x4D, "skeletonPicture", false, "Skeleton Picture", "toolsgroup");
-    vars.AddSplit(0x33, "glassEye", false, "Glass Eye", "toolsgroup");
-    vars.AddSplit(0x67, "rustedSword", false, "Rusted Sword", "toolsgroup");
-    vars.AddSplit(0x34, "pianoRoll", false, "Piano Roll", "toolsgroup");
-    vars.AddSplit(0x41, "controlLever", false, "Control Lever", "toolsgroup");
-    vars.AddSplit(0x5B, "barCodeSticker", false, "Bar Code Sticker", "toolsgroup");
-    vars.AddSplit(0x27, "gasMask", false, "Gas Mask", "toolsgroup");
-    vars.AddSplit(0x5E, "batteryPack", false, "Battery Pack", "toolsgroup");
-    vars.AddSplit(0x5D, "doorKnob", false, "Door Knob", "toolsgroup");
-    vars.AddSplit(0x64, "tankObject", false, "Tank Object", "toolsgroup");
-    vars.AddSplit(0x51, "halberd", false, "Halberd", "toolsgroup");
-    vars.AddSplit(0x75, "paperWeight", false, "Paper Weight", "toolsgroup");
+    vars.AddTracker(0x52, "extinguisher", false, "Extinguisher", "toolsgroup");
+    vars.AddTracker(0x35, "steeringWheel", false, "Steering Wheel", "toolsgroup");
+    vars.AddTracker(0x4D, "skeletonPicture", false, "Skeleton Picture", "toolsgroup");
+    vars.AddTracker(0x33, "glassEye", false, "Glass Eye", "toolsgroup");
+    vars.AddTracker(0x67, "rustedSword", false, "Rusted Sword", "toolsgroup");
+    vars.AddTracker(0x34, "pianoRoll", false, "Piano Roll", "toolsgroup");
+    vars.AddTracker(0x41, "controlLever", false, "Control Lever", "toolsgroup");
+    vars.AddTracker(0x5B, "barCodeSticker", false, "Bar Code Sticker", "toolsgroup");
+    vars.AddTracker(0x27, "gasMask", false, "Gas Mask", "toolsgroup");
+    vars.AddTracker(0x5E, "batteryPack", false, "Battery Pack", "toolsgroup");
+    vars.AddTracker(0x5D, "doorKnob", false, "Door Knob", "toolsgroup");
+    vars.AddTracker(0x64, "tankObject", false, "Tank Object", "toolsgroup");
+    vars.AddTracker(0x51, "halberd", false, "Halberd", "toolsgroup");
+    vars.AddTracker(0x75, "paperWeight", false, "Paper Weight", "toolsgroup");
 
     settings.Add("cardgroup", true, "Cards");
-    vars.AddSplit(0x3E, "biohazardCard", false, "Biohazard Card", "cardgroup");
-    vars.AddSplit(0x4C, "emblemCard", false, "Emblem Card", "cardgroup");
-    vars.AddSplit(0x69, "securityCard", false, "Security Card", "cardgroup");
+    vars.AddTracker(0x3E, "biohazardCard", false, "Biohazard Card", "cardgroup");
+    vars.AddTracker(0x4C, "emblemCard", false, "Emblem Card", "cardgroup");
+    vars.AddTracker(0x69, "securityCard", false, "Security Card", "cardgroup");
 
     settings.Add("emblemgroup", true, "Emblems");
-    vars.AddSplit(0x3B, "hawkEmblem", false, "Hawk Emblem", "emblemgroup");
-    vars.AddSplit(0x56, "spAlloyEmblem", false, "Sp. Alloy Emblem", "emblemgroup");
-    vars.AddSplit(0x53, "briefcase", false, "Briefcase", "emblemgroup");
-    vars.AddSplit(0x55, "tg01", false, "TG-01", "emblemgroup");
+    vars.AddTracker(0x3B, "hawkEmblem", false, "Hawk Emblem", "emblemgroup");
+    vars.AddTracker(0x56, "spAlloyEmblem", false, "Sp. Alloy Emblem", "emblemgroup");
+    vars.AddTracker(0x53, "briefcase", false, "Briefcase", "emblemgroup");
+    vars.AddTracker(0x55, "tg01", false, "TG-01", "emblemgroup");
 
     settings.Add("proofgroup", true, "Proofs");
-    vars.AddSplit(0x46, "navyProof", false, "Navy Proof", "proofgroup");
-    vars.AddSplit(0x45, "armyProof", false, "Army Proof", "proofgroup");
-    vars.AddEvent("airForceProof", false, "Air Force Proof", "proofgroup");
-    vars.AddEvent("airForceProofChris", false, "Air Force Proof (Chris)", "proofgroup");
+    vars.AddTracker(0x46, "navyProof", false, "Navy Proof", "proofgroup");
+    vars.AddTracker(0x45, "armyProof", false, "Army Proof", "proofgroup");
+    vars.AddSplit("airForceProof", false, "Air Force Proof", "proofgroup");
+    vars.AddSplit("airForceProofChris", false, "Air Force Proof (Chris)", "proofgroup");
 
     settings.Add("jewelgroup", true, "Family Jewels");
-    vars.AddSplit(0x2B, "alexandersPierce", false, "Alexander's Pierce", "jewelgroup");
-    vars.AddSplit(0x6B, "alexiasChoker", false, "Alexia's Choker", "jewelgroup");
-    vars.AddSplit(0x2D, "alfredsRing", false, "Alfred's Ring", "jewelgroup");
-    vars.AddSplit(0x2C, "alexandersJewel", false, "Alexander's Jewel", "jewelgroup");
-    vars.AddSplit(0x6C, "alexiasJewel", false, "Alexia's Jewel", "jewelgroup");
-    vars.AddSplit(0x2E, "alfredsJewel", false, "Alfred's Jewel", "jewelgroup");
+    vars.AddTracker(0x2B, "alexandersPierce", false, "Alexander's Pierce", "jewelgroup");
+    vars.AddTracker(0x6B, "alexiasChoker", false, "Alexia's Choker", "jewelgroup");
+    vars.AddTracker(0x2D, "alfredsRing", false, "Alfred's Ring", "jewelgroup");
+    vars.AddTracker(0x2C, "alexandersJewel", false, "Alexander's Jewel", "jewelgroup");
+    vars.AddTracker(0x6C, "alexiasJewel", false, "Alexia's Jewel", "jewelgroup");
+    vars.AddTracker(0x2E, "alfredsJewel", false, "Alfred's Jewel", "jewelgroup");
 
     settings.Add("tigergroup", true, "Tiger Jewels");
-    vars.AddSplit(0x70, "blueJewel", false, "Blue Jewel", "tigergroup");
-    vars.AddSplit(0x6F, "redJewel", false, "Red Jewel", "tigergroup");
+    vars.AddTracker(0x70, "blueJewel", false, "Blue Jewel", "tigergroup");
+    vars.AddTracker(0x6F, "redJewel", false, "Red Jewel", "tigergroup");
 
     settings.Add("dragonflygroup", true, "Dragonflies");
-    vars.AddSplit(0x77, "silverDragonfly", false, "Silver Dragonfly", "dragonflygroup");
-    vars.AddSplit(0x76, "silverDragonflyObject", false, "Silver Dragonfly (No Wings)", "dragonflygroup");
-    vars.AddSplit(0x42, "goldDragonfly", false, "Gold Dragonfly", "dragonflygroup");
-    vars.AddSplit(0x4F, "goldDragonflyObject", false, "Gold Dragonfly (No Wings)", "dragonflygroup");
-    vars.AddSplit(0x78, "wingObject", false, "Wing Object (First Pickup)", "dragonflygroup");
+    vars.AddTracker(0x77, "silverDragonfly", false, "Silver Dragonfly", "dragonflygroup");
+    vars.AddTracker(0x76, "silverDragonflyObject", false, "Silver Dragonfly (No Wings)", "dragonflygroup");
+    vars.AddTracker(0x42, "goldDragonfly", false, "Gold Dragonfly", "dragonflygroup");
+    vars.AddTracker(0x4F, "goldDragonflyObject", false, "Gold Dragonfly (No Wings)", "dragonflygroup");
+    vars.AddTracker(0x78, "wingObject", false, "Wing Object (First Pickup)", "dragonflygroup");
 
     settings.Add("antgroup", true, "Ants");
-    vars.AddSplit(0x3C, "queenAntObject", false, "Queen Ant Object", "antgroup");
-    vars.AddSplit(0x3D, "kingAntObject", false, "King Ant Object", "antgroup");
+    vars.AddTracker(0x3C, "queenAntObject", false, "Queen Ant Object", "antgroup");
+    vars.AddTracker(0x3D, "kingAntObject", false, "King Ant Object", "antgroup");
 
     settings.Add("valvegroup", true, "Valves");
-    vars.AddSplit(0x57, "valveHandle", false, "Valve Handle", "valvegroup");
-    vars.AddEvent("octaValveHandle", false, "Octa Valve Handle", "valvegroup");
-    vars.AddEvent("octaValveHandleChris", false, "Octa Valve Handle (Chris)", "valvegroup");
-    vars.AddSplit(0x72, "sqValveHandle", false, "Sq. Valve Handle", "valvegroup");
-    vars.AddSplit(0x71, "squaresocket", false, "Square Socket", "valvegroup");
+    vars.AddTracker(0x57, "valveHandle", false, "Valve Handle", "valvegroup");
+    vars.AddSplit("octaValveHandle", false, "Octa Valve Handle", "valvegroup");
+    vars.AddSplit("octaValveHandleChris", false, "Octa Valve Handle (Chris)", "valvegroup");
+    vars.AddTracker(0x72, "sqValveHandle", false, "Sq. Valve Handle", "valvegroup");
+    vars.AddTracker(0x71, "squaresocket", false, "Square Socket", "valvegroup");
 
     settings.Add("clementgroup", true, "Clement");
-    vars.AddSplit(0x63, "clementSigma", false, "Clement Sigma", "clementgroup");
-    vars.AddSplit(0x62, "clementAlpha", false, "Clement Alpha", "clementgroup");
-    vars.AddSplit(0x90, "clementMixture", false, "Clement Mixture", "clementgroup");
+    vars.AddTracker(0x63, "clementSigma", false, "Clement Sigma", "clementgroup");
+    vars.AddTracker(0x62, "clementAlpha", false, "Clement Alpha", "clementgroup");
+    vars.AddTracker(0x90, "clementMixture", false, "Clement Mixture", "clementgroup");
 
     settings.Add("plategroup", true, "Eagle Plates");
-    vars.AddEvent("eaglePlateDiorama", false, "Eagle Plate (Diorama Room)", "plategroup");
-    vars.AddEvent("eaglePlateUmbrella", false, "Eagle Plate (Umbrella Meeting Room)", "plategroup");
-    vars.AddEvent("eaglePlateWaterPool", false, "Eagle Plate (Water Pool)", "plategroup");
+    vars.AddSplit("eaglePlateDiorama", false, "Eagle Plate (Diorama Room)", "plategroup");
+    vars.AddSplit("eaglePlateUmbrella", false, "Eagle Plate (Umbrella Meeting Room)", "plategroup");
+    vars.AddSplit("eaglePlateWaterPool", false, "Eagle Plate (Water Pool)", "plategroup");
 
     settings.Add("musicboxgroup", true, "Music Box Plates");
-    vars.AddEvent("musicBoxPlate", false, "Music Box Plate", "musicboxgroup");
-    vars.AddEvent("musicBoxPlateChris", false, "Music Box Plate (Chris)", "musicboxgroup");
+    vars.AddSplit("musicBoxPlate", false, "Music Box Plate", "musicboxgroup");
+    vars.AddSplit("musicBoxPlateChris", false, "Music Box Plate (Chris)", "musicboxgroup");
 
     settings.Add("containers", true, "Containers");
-    vars.AddSplit(0x74, "earthenwareVase", false, "Earthenware Vase", "containers"); // Queen Ant Object
-    vars.AddSplit(0x7E, "plantPot", false, "Plant Pot", "containers"); // Machine Room Key
-    vars.AddSplit(0x79, "crystal", false, "Crystal", "containers"); // Security Card (as Claire)
-    vars.AddSplit(0x6A, "securityFile", false, "Security File", "containers"); // Security Card (as Chris)
+    vars.AddTracker(0x74, "earthenwareVase", false, "Earthenware Vase", "containers");
+    settings.SetToolTip("earthenwareVase", "Contains the Queen Ant Object.");
+    vars.AddTracker(0x7E, "plantPot", false, "Plant Pot", "containers");
+    settings.SetToolTip("plantPot", "Contains the Machine Room Key.");
+    vars.AddTracker(0x79, "crystal", false, "Crystal", "containers");
+    settings.SetToolTip("crystal", "Contains the Security Card for Claire.");
+    vars.AddTracker(0x6A, "securityFile", false, "Security File", "containers");
+    settings.SetToolTip("securityFile", "Contains the Security Card for Chris.");
 
+    // Items that are not normally used in a speedrun
     settings.Add("othergroup", false, "Other");
-    vars.AddSplit(0x40, "detonator", false, "Detonator", "othergroup");
-    vars.AddSplit(0x95, "emptyExtinguisher", false, "Empty Extinguisher", "othergroup");
-    vars.AddSplit(0x68, "hemostatic", false, "Hemostatic", "othergroup");
-    vars.AddSplit(0x49, "idCard", false, "ID Card", "othergroup");
-    vars.AddSplit(0x48, "keyWithTag", false, "Key With Tag", "othergroup"); // Storage Key
-    vars.AddSplit(0x32, "lockpick", false, "Lockpick", "othergroup");
-    vars.AddSplit(0x88, "lugerReplica", false, "Luger Replica", "othergroup");
-    vars.AddSplit(0x73, "serum", false, "Serum", "othergroup");
+    vars.AddTracker(0x40, "detonator", false, "Detonator", "othergroup");
+    vars.AddTracker(0x95, "emptyExtinguisher", false, "Empty Extinguisher", "othergroup");
+    vars.AddTracker(0x68, "hemostatic", false, "Hemostatic", "othergroup");
+    vars.AddTracker(0x49, "idCard", false, "ID Card", "othergroup");
+    vars.AddTracker(0x48, "keyWithTag", false, "Key With Tag", "othergroup");
+    settings.SetToolTip("keyWithTag", "Changes to Storage Key when examined.");
+    vars.AddTracker(0x32, "lockpick", false, "Lockpick", "othergroup");
+    vars.AddTracker(0x88, "lugerReplica", false, "Luger Replica", "othergroup");
+    vars.AddTracker(0x73, "serum", false, "Serum", "othergroup");
 
+    // Weapons that are not normally used in a speedrun
     settings.Add("otherweapongroup", false, "Other (Weapons)");
-    vars.AddSplit(0x02, "assaultRifle", false, "Assault Rifle", "otherweapongroup");
-    vars.AddSplit(0x0A, "customHandgun", false, "Custom Handgun", "otherweapongroup");
-    vars.AddSplit(0x83, "enhancedHandgun", false, "Enhanced Handgun", "otherweapongroup");
-    vars.AddSplit(0x8E, "m1p", false, "M-100P", "otherweapongroup");
-    vars.AddSplit(0x20, "magnum", false, "Magnum", "otherweapongroup");
-    vars.AddSplit(0x03, "sniperRifle", false, "Sniper Rifle", "otherweapongroup");
-    vars.AddEvent("subMachineGunChris", false, "Sub Machine Gun (Chris)", "otherweapongroup");
+    vars.AddTracker(0x02, "assaultRifle", false, "Assault Rifle", "otherweapongroup");
+    vars.AddTracker(0x0A, "customHandgun", false, "Custom Handgun", "otherweapongroup");
+    vars.AddTracker(0x83, "enhancedHandgun", false, "Enhanced Handgun", "otherweapongroup");
+    vars.AddTracker(0x8E, "m1p", false, "M-100P", "otherweapongroup");
+    vars.AddTracker(0x20, "magnum", false, "Magnum", "otherweapongroup");
+    vars.AddTracker(0x03, "sniperRifle", false, "Sniper Rifle", "otherweapongroup");
+    vars.AddSplit("subMachineGunChris", false, "Sub Machine Gun (Chris)", "otherweapongroup");
 
+    // Application information
     settings.Add("infogroup", false, "Info");
     settings.Add("infogroup1", false, "Resident Evil: Code: Veronica Auto Splitter by Kapdap", "infogroup");
     settings.Add("infogroup2", false, "Website: https://github.com/kapdap/re-cvx-autosplitter", "infogroup");
@@ -395,97 +411,113 @@ update
     if (timer.CurrentPhase == TimerPhase.NotRunning)
     {
         vars.ResetTracker();
-        vars.ResetEvents();
+        vars.ResetSplits();
     }
 }
 
 split
 {
+    // Split when an inventory entry changes
     for (int i = 0; i < current.inventory.Length; i++)
     {
         byte item = current.inventory[i];
 
+        // Continue if the entry has not changed
         if (item == old.inventory[i]) continue;
 
         switch (item)
         {
+            // Items that are picked up more than once are tracked based on the room they are found in
             case 0x22: // Sub Machine Gun
-                if (current.room == 0x030A && !vars.events["subMachineGun"])
+                // Military Training Facility Warehouse
+                if (current.room == 0x030A && !vars.splits["subMachineGun"])
                 {
-                    vars.events["subMachineGun"] = true;
+                    vars.splits["subMachineGun"] = true;
                     return settings["subMachineGun"];
                 }
 
-                if (current.room == 0x0716 && !vars.events["subMachineGunChris"])
+                // Military Training Facility B3 Cave
+                if (current.room == 0x0716 && !vars.splits["subMachineGunChris"])
                 {
-                    vars.events["subMachineGunChris"] = true;
+                    vars.splits["subMachineGunChris"] = true;
                     return settings["subMachineGunChris"];
                 }
                 break;
 
             case 0x47: // Air Force Proof
-                if (current.room == 0x0207 && !vars.events["airForceProof"])
+                // Private Residence 4F Private Study
+                if (current.room == 0x0207 && !vars.splits["airForceProof"])
                 {
-                    vars.events["airForceProof"] = true;
+                    vars.splits["airForceProof"] = true;
                     return settings["airForceProof"];
                 }
 
-                if (current.room == 0x0801 && !vars.events["airForceProofChris"])
+                // Airport Bridge
+                if (current.room == 0x0801 && !vars.splits["airForceProofChris"])
                 {
-                    vars.events["airForceProofChris"] = true;
+                    vars.splits["airForceProofChris"] = true;
                     return settings["airForceProofChris"];
                 }
                 break;
 
             case 0x4E: // Music Box Plate
-                if (current.room == 0x0205 && !vars.events["musicBoxPlate"])
+                // Private Residence 2F Alexias Bedroom
+                if (current.room == 0x0205 && !vars.splits["musicBoxPlate"])
                 {
-                    vars.events["musicBoxPlate"] = true;
+                    vars.splits["musicBoxPlate"] = true;
                     return settings["musicBoxPlate"];
                 }
 
-                if (current.room == 0x0918 && !vars.events["musicBoxPlateChris"])
+                // Antartic Transport Terminal B4 Alexias Bedroom
+                if (current.room == 0x0918 && !vars.splits["musicBoxPlateChris"])
                 {
-                    vars.events["musicBoxPlateChris"] = true;
+                    vars.splits["musicBoxPlateChris"] = true;
                     return settings["musicBoxPlateChris"];
                 }
                 break;
 
             case 0x58: // Octo Valve Handle
-                if (current.room == 0x0602 && !vars.events["octaValveHandle"])
+                // Antartic Transport Terminal B1 Tool Storeroom
+                if (current.room == 0x0602 && !vars.splits["octaValveHandle"])
                 {
-                    vars.events["octaValveHandle"] = true;
+                    vars.splits["octaValveHandle"] = true;
                     return settings["octaValveHandle"];
                 }
 
-                if (current.room == 0x0906 && !vars.events["octaValveHandleChris"])
+                // Antartic Transport Terminal B1 Mining Room
+                if (current.room == 0x0906 && !vars.splits["octaValveHandleChris"])
                 {
-                    vars.events["octaValveHandleChris"] = true;
+                    vars.splits["octaValveHandleChris"] = true;
                     return settings["octaValveHandleChris"];
                 }
                 break;
 
             case 0x38: // Eagle Plate
-                if (current.room == 0x0304 && !vars.events["eaglePlateDiorama"])
+                // Military Training Facility 1F Diorama Room
+                if (current.room == 0x0304 && !vars.splits["eaglePlateDiorama"])
                 {
-                    vars.events["eaglePlateDiorama"] = true;
+                    vars.splits["eaglePlateDiorama"] = true;
                     return settings["eaglePlateDiorama"];
                 }
 
-                if (current.room == 0x0106 && !vars.events["eaglePlateUmbrella"])
+                // Palace 1F Umbrella Meeting Room
+                if (current.room == 0x0106 && !vars.splits["eaglePlateUmbrella"])
                 {
-                    vars.events["eaglePlateUmbrella"] = true;
+                    vars.splits["eaglePlateUmbrella"] = true;
                     return settings["eaglePlateUmbrella"];
                 }
 
-                if (current.room == 0x070A && !vars.events["eaglePlateWaterPool"])
+                // Military Training Facility B2 Water Pool
+                if (current.room == 0x070A && !vars.splits["eaglePlateWaterPool"])
                 {
-                    vars.events["eaglePlateWaterPool"] = true;
+                    vars.splits["eaglePlateWaterPool"] = true;
                     return settings["eaglePlateWaterPool"];
                 }
                 break;
 
+            // Do not need to check room id if an item is picked up only once
             default:
+                // Split the first time an item has been added to the inventory
                 if (vars.tracker.ContainsKey(item) && !vars.tracker[item])
                 {
                     vars.tracker[item] = true;
@@ -495,39 +527,45 @@ split
         }
     }
 
-    if (current.room == 0x0501 && !vars.events["tyrantPlane"])
+    // Transport Plane Cargo Hold
+    if (current.room == 0x0501 && !vars.splits["tyrantPlane"])
     {
-        vars.events["tyrantPlane"] = true;
+        vars.splits["tyrantPlane"] = true;
         return settings["tyrantPlane"];
     }
 
-    if (current.room == 0x0600 && !vars.events["antarcticaBase"])
+    // Antartic Transport Terminal B1 Silo
+    if (current.room == 0x0600 && !vars.splits["antarcticaBase"])
     {
-        vars.events["antarcticaBase"] = true;
+        vars.splits["antarcticaBase"] = true;
         return settings["antarcticaBase"];
     }
 
-    if (current.room == 0x060A && !vars.events["nosferatuFight"])
+    // Antartic Transport Terminal 1F Helipad
+    if (current.room == 0x060A && !vars.splits["nosferatuFight"])
     {
-        vars.events["nosferatuFight"] = true;
+        vars.splits["nosferatuFight"] = true;
         return settings["nosferatuFight"];
     }
 
-    if (current.room == 0x0716 && !vars.events["startChris"])
+    // Military Training Facility B3 Cave
+    if (current.room == 0x0716 && !vars.splits["startChris"])
     {
-        vars.events["startChris"] = true;
+        vars.splits["startChris"] = true;
         return settings["startChris"];
     }
 
-    if (current.rank == 0x04 && !vars.events["endGame"])
+    // End Game Rank Screen
+    if (current.rank == 0x04 && !vars.splits["endGame"])
     {
-        vars.events["endGame"] = true;
+        vars.splits["endGame"] = true;
         return settings["endGame"];
     }
 }
 
 gameTime
 {
+    // Seconds = IGT / 60
     return TimeSpan.FromSeconds(current.time / 60.0);
 }
 

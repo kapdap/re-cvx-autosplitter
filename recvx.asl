@@ -200,149 +200,182 @@ startup
 
 init
 {
-    vars.productCode = String.Empty;
-    vars.gameProcess = String.Empty;
-    vars.isBigEndian = false;
-    vars.isReverseOrder = false;
+    vars.gameProcess = String.Empty; // Used to detect when the process has changed
+    vars.productCode = String.Empty; // Used to detect when the game release has changed
+    vars.basePointer = IntPtr.Zero; // Emulator virtual memory base pointer
+    vars.isBigEndian = false; // Console uses big endian (e.g. PS3)
 
-    vars.UpdateAddresses = (Action<string>) ((productCode) => {
-        switch (productCode)
+    // Sets memory pointers for the detected game release
+    vars.UpdatePointers = (Action) (() => {
+        switch ((string)vars.productCode)
         {
-            case "SLPM_650.22":
-                vars.timeAdr = 0x204314A0;
-                vars.roomAdr = 0x204314B4;
-                vars.rankAdr = 0x20430C4C;
-                vars.healthAdr = 0x204301FC;
-                vars.characterAdr = 0x20430C84;
-                vars.inventoryAdr = 0x20430E70;
+            case "SLPM_650.22": // [PS2] [JP] BioHazard Code: Veronica Kanzenban
+                vars.timePtr = 0x004314A0;
+                vars.roomPtr = 0x004314B4;
+                vars.rankPtr = 0x00430C4C;
+                vars.healthPtr = 0x004301FC;
+                vars.characterPtr = 0x00430C84;
+                vars.inventoryPtr = 0x00430E70;
                 break;
 
-            case "SLUS_201.84":
-                vars.timeAdr = 0x204339A0;
-                vars.roomAdr = 0x204339B4;
-                vars.rankAdr = 0x2043314C;
-                vars.healthAdr = 0x204326FC;
-                vars.characterAdr = 0x20433184;
-                vars.inventoryAdr = 0x20433370;
+            case "SLUS_201.84": // [PS2] [US] Resident Evil Code: Veronica X
+                vars.timePtr = 0x004339A0;
+                vars.roomPtr = 0x004339B4;
+                vars.rankPtr = 0x0043314C;
+                vars.healthPtr = 0x004326FC;
+                vars.characterPtr = 0x00433184;
+                vars.inventoryPtr = 0x00433370;
                 break;
 
-            case "SLES_503.06":
-                vars.timeAdr = 0x2044A1D0;
-                vars.roomAdr = 0x2044A1E4;
-                vars.rankAdr = 0x2044997C;
-                vars.healthAdr = 0x20448F2C;
-                vars.characterAdr = 0x204499B4;
-                vars.inventoryAdr = 0x20449BA0;
+            case "SLES_503.06": // [PS2] [EU] Resident Evil Code: Veronica X
+                vars.timePtr = 0x0044A1D0;
+                vars.roomPtr = 0x0044A1E4;
+                vars.rankPtr = 0x0044997C;
+                vars.healthPtr = 0x00448F2C;
+                vars.characterPtr = 0x004499B4;
+                vars.inventoryPtr = 0x00449BA0;
                 break;
 
-            case "NPUB30467":
-                vars.timeAdr = 0x300BB3DB8;
-                vars.roomAdr = 0x300BB3DCC;
-                vars.rankAdr = 0x300BB3565;
-                vars.healthAdr = 0x300BDEA1F;
-                vars.characterAdr = 0x300BB359C;
-                vars.inventoryAdr = 0x300BB3788;
+            case "NPUB30467": // [PS3] [US] Resident Evil Code: Veronica X HD
+                vars.timePtr = 0x00BB3DB8;
+                vars.roomPtr = 0x00BB3DCC;
+                vars.rankPtr = 0x00BB3565;
+                vars.healthPtr = 0x00BDEA1C;
+                vars.characterPtr = 0x00BB359C;
+                vars.inventoryPtr = 0x00BB3788;
                 break;
 
-            case "NPEB00553":
-                vars.timeAdr = 0x300BC40B8;
-                vars.roomAdr = 0x300BC40CC;
-                vars.rankAdr = 0x300BC3865;
-                vars.healthAdr = 0x300BEED1F;
-                vars.characterAdr = 0x300BC389C;
-                vars.inventoryAdr = 0x300BC3A88;
+            case "NPEB00553": // [PS3] [EU] Resident Evil Code: Veronica X
+                vars.timePtr = 0x00BC40B8;
+                vars.roomPtr = 0x00BC40CC;
+                vars.rankPtr = 0x00BC3865;
+                vars.healthPtr = 0x00BEED1C;
+                vars.characterPtr = 0x00BC389C;
+                vars.inventoryPtr = 0x00BC3A88;
                 break;
 
-            default: // NPJB00135
-                vars.timeAdr = 0x300BB3E38;
-                vars.roomAdr = 0x300BB3E4C;
-                vars.rankAdr = 0x300BB35E5;
-                vars.healthAdr = 0x300BDEA9F;
-                vars.characterAdr = 0x300BB361C;
-                vars.inventoryAdr = 0x300BB3808;
+            // Default to PS3 JP release - most commonly speedrun version
+            default: // NPJB00135 - [PS3] [JP] BioHazard Code: Veronica Kanzenban
+                vars.timePtr = 0x00BB3E38;
+                vars.roomPtr = 0x00BB3E4C;
+                vars.rankPtr = 0x00BB35E5;
+                vars.healthPtr = 0x00BDEA9C;
+                vars.characterPtr = 0x00BB361C;
+                vars.inventoryPtr = 0x00BB3808;
                 break;
         }
     });
 
-    vars.UpdateProduct = (Action) (() => {
-        string productCode;
-
-        switch (game.ProcessName)
-        {
-            case "pcsx2":
-                productCode = memory.ReadString(new IntPtr(0x20015B90), 11);
-                break;
-
-            default: // rpcs3
-                productCode = memory.ReadString(new IntPtr(0x320010251), 9);
-                break;
-        }
-
-        if (vars.productCode != productCode)
-        {
-            vars.productCode = productCode;
-            vars.UpdateAddresses(productCode);
-        }
-    });
-
+    // Detects if the process has changed
     vars.UpdateProcess = (Action) (() => {
+        // Update process name if application has changed
         if (vars.gameProcess != game.ProcessName)
         {
             vars.gameProcess = game.ProcessName;
-            vars.isBigEndian = (vars.gameProcess == "rpcs3");
-            vars.isReverseOrder = (vars.gameProcess == "pcsx2");
+
+            // Set emulator base pointer and edianess values
+            switch ((string)vars.gameProcess)
+            {
+                case "pcsx2":
+                    vars.basePointer = 0x20000000;
+                    vars.isBigEndian = false;
+                    break;
+
+                default: // rpcs3
+                    vars.basePointer = 0x300000000;
+                    vars.isBigEndian = true;
+                    break;
+            }
         }
     });
 
-    vars.UpdateValues = (Action) (() => {
-        uint time = 0;
-        ushort room = 0;
-        byte rank = 0x00;
-        byte health = 0x00;
-        byte character = 0x00;
+    // Detects if the game release has changed
+    vars.UpdateProduct = (Action) (() => {
+        string productCode;
 
-        memory.ReadValue<uint>(new IntPtr(vars.timeAdr), out time);
-        memory.ReadValue<ushort>(new IntPtr(vars.roomAdr), out room);
-        memory.ReadValue<byte>(new IntPtr(vars.rankAdr), out rank);
-        memory.ReadValue<byte>(new IntPtr(vars.healthAdr), out health);
-        memory.ReadValue<byte>(new IntPtr(vars.characterAdr), out character);
+        // Read game product code from memory
+        switch ((string)vars.gameProcess)
+        {
+            case "pcsx2":
+                productCode = memory.ReadString(new IntPtr(vars.basePointer + 0x00015B90), 11);
+                break;
+
+            default: // rpcs3
+                productCode = memory.ReadString(new IntPtr(vars.basePointer + 0x20010251), 9);
+                break;
+        }
+
+        // Update product code if the game release has changed
+        if (vars.productCode != productCode)
+        {
+            vars.productCode = productCode;
+            vars.UpdatePointers();
+        }
+    });
+
+    // Updates game values
+    vars.UpdateValues = (Action) (() => {
+        uint time = 0; // In Game Timer
+        ushort room = 0; // Room the character is in
+        byte rank = 0x00; // End game rank screen
+        uint health = 0x00; // Character health
+        byte character = 0x00; // Character ID (0 Claire, 1 Chris, 2 Steve, 3 Wesker)
+
+        // Read values from memory
+        memory.ReadValue<uint>(new IntPtr(vars.basePointer + vars.timePtr), out time);
+        memory.ReadValue<ushort>(new IntPtr(vars.basePointer + vars.roomPtr), out room);
+        memory.ReadValue<byte>(new IntPtr(vars.basePointer + vars.rankPtr), out rank);
+        memory.ReadValue<uint>(new IntPtr(vars.basePointer + vars.healthPtr), out health);
+        memory.ReadValue<byte>(new IntPtr(vars.basePointer + vars.characterPtr), out character);
 
         current.rank = rank;
-        current.slot = 0;
-        current.ammo = 0;
+        current.slot = 0; // Inventory slot number of the equipped item
+        current.ammo = 0; // Ammo count for the equipped weapon
         current.time = vars.isBigEndian ? (int)vars.SwapBytesInt(time) : (int)time;
-        current.room = vars.SwapBytes(room);
-        current.health = (int)health;
+        current.room = vars.SwapBytes(room); // Room bytes always need to be swapped
+        current.health = vars.isBigEndian ? (int)vars.SwapBytesInt(health) : (int)health;
         current.character = character;
-        current.inventory = new byte[11];
+        current.inventory = new byte[11]; // Current characters inventory
 
-        int index = -1;
+        int index = -1; // Inventory array index
 
-        IntPtr ptr = IntPtr.Add(new IntPtr(vars.inventoryAdr), character * 0x40);
+        // Calculate starting pointer to the current characters inventory entries
+        IntPtr pointer = new IntPtr(vars.basePointer + vars.inventoryPtr + (character * 0x40));
+
+        // Read inventory of the current character
         for (int i = 0; i < 12; ++i)
         {
-            uint item = 0;
-            memory.ReadValue<uint>(ptr, out item);
-            ptr = IntPtr.Add(ptr, 0x4);
+            uint item = 0; // Inventory entry
 
+            // Read inventory entry from memory
+            memory.ReadValue<uint>(pointer, out item);
+
+            // Move pointer to the next entry
+            pointer = IntPtr.Add(pointer, 0x4);
+
+            // Convert to little endian if the console uses big endian
             item = vars.isBigEndian ? vars.SwapBytesInt(item) : item;
 
-            if (i <= 0)
+            // First entry is the slot number of the equipped item
+            if (i == 0)
             {
                 current.slot = item;
                 continue;
             }
 
+            // Remaing entries are inventory items
             byte[] bytes = BitConverter.GetBytes(item);
+
+            // Set inventory index to the item ID
             current.inventory[++index] = bytes[2];
 
+            // Read quantity if this item is equipped for the ammo count
             if (current.slot == (index + 1))
-            {
                 current.ammo = BitConverter.ToInt16(bytes, 0);
-            }
         }
     });
 
+    // Initialise values
     vars.UpdateProcess();
     vars.UpdateProduct();
     vars.UpdateValues();

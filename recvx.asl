@@ -428,6 +428,16 @@ split
         switch (item)
         {
             // Items that are picked up more than once are tracked based on the room they are found in
+            case 0x08: // Combat Knife
+                // Prison B1 Cells
+                if (current.room == 0x0000 && !vars.splits["combatKnife"])
+                {
+                    // Prevents splitting when changing to Chris if the knife is skipped in the prison cells
+                    vars.splits["combatKnife"] = true;
+                    return settings["combatKnife"];
+                }
+                break;
+
             case 0x22: // Sub Machine Gun
                 // Military Training Facility Warehouse
                 if (current.room == 0x030A && !vars.splits["subMachineGun"])

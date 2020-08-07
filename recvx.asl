@@ -177,13 +177,13 @@ startup
 
     settings.Add("containers", true, "Containers");
     vars.AddTracker(0x74, "earthenwareVase", false, "Earthenware Vase", "containers");
-    settings.SetToolTip("earthenwareVase", "Contains the Queen Ant Object.");
+    settings.SetToolTip("earthenwareVase", "Contains the Queen Ant Object");
     vars.AddTracker(0x7E, "plantPot", false, "Plant Pot", "containers");
-    settings.SetToolTip("plantPot", "Contains the Machine Room Key.");
+    settings.SetToolTip("plantPot", "Contains the Machine Room Key");
     vars.AddTracker(0x79, "crystal", false, "Crystal", "containers");
-    settings.SetToolTip("crystal", "Contains the Security Card for Claire.");
+    settings.SetToolTip("crystal", "Contains the Security Card for Claire");
     vars.AddTracker(0x6A, "securityFile", false, "Security File", "containers");
-    settings.SetToolTip("securityFile", "Contains the Security Card for Chris.");
+    settings.SetToolTip("securityFile", "Contains the Security Card for Chris");
 
     // Items that are not normally used in a speedrun
     settings.Add("othergroup", false, "Other");
@@ -211,7 +211,7 @@ startup
     settings.Add("infogroup", false, "Info");
     settings.Add("infogroup1", false, "Resident Evil: Code: Veronica Auto Splitter by Kapdap", "infogroup");
     settings.Add("infogroup2", false, "Website: https://github.com/kapdap/re-cvx-autosplitter", "infogroup");
-    settings.Add("infogroup3", false, "Last Update: 2020-08-07T15:00:00+1200", "infogroup");
+    settings.Add("infogroup3", false, "Last Update: 2020-08-07T15:15:00+1200", "infogroup");
 }
 
 init

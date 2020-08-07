@@ -399,7 +399,8 @@ init
 
 start
 {
-    return (current.time == 0 && current.room == 0 && current.inventory[1] == 0x91);
+    // Start when IGT is 0, in the Prison Cell room and the 1st item slot contains the Lighter
+    return (current.time == 0 && current.room == 0 && current.inventory[0] == 0x37);
 }
 
 update

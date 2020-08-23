@@ -1,4 +1,4 @@
-// Resident Evil/BioHazard Code: Veronica Auto Splitter
+// Resident Evil/Biohazard: Code: Veronica Auto Splitter
 // By Kapdap 2020/07/16
 // Last updated 2020/08/07
 // https://github.com/kapdap/re-cvx-autosplitter
@@ -211,7 +211,7 @@ startup
     settings.Add("infogroup", false, "Info");
     settings.Add("infogroup1", false, "Resident Evil: Code: Veronica Auto Splitter by Kapdap", "infogroup");
     settings.Add("infogroup2", false, "Website: https://github.com/kapdap/re-cvx-autosplitter", "infogroup");
-    settings.Add("infogroup3", false, "Last Update: 2020-08-07T15:15:00+1200", "infogroup");
+    settings.Add("infogroup3", false, "Last Update: 2020-08-23T21:45:00+1200", "infogroup");
 }
 
 init

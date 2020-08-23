@@ -230,6 +230,7 @@ init
                 vars.roomPtr = 0x004314B4;
                 vars.rankPtr = 0x00430C4C;
                 vars.healthPtr = 0x004301FC;
+                vars.statusPtr = 0x0042FE6A;
                 vars.characterPtr = 0x00430C84;
                 vars.inventoryPtr = 0x00430E70;
                 break;
@@ -239,6 +240,7 @@ init
                 vars.roomPtr = 0x004339B4;
                 vars.rankPtr = 0x0043314C;
                 vars.healthPtr = 0x004326FC;
+                vars.statusPtr = 0x0043236A;
                 vars.characterPtr = 0x00433184;
                 vars.inventoryPtr = 0x00433370;
                 break;
@@ -248,6 +250,7 @@ init
                 vars.roomPtr = 0x0044A1E4;
                 vars.rankPtr = 0x0044997C;
                 vars.healthPtr = 0x00448F2C;
+                vars.statusPtr = 0x00448B9A;
                 vars.characterPtr = 0x004499B4;
                 vars.inventoryPtr = 0x00449BA0;
                 break;
@@ -257,6 +260,7 @@ init
                 vars.roomPtr = 0x00BB3DCC;
                 vars.rankPtr = 0x00BB3565;
                 vars.healthPtr = 0x00BDEA1C;
+                vars.statusPtr = 0x00BDE689;
                 vars.characterPtr = 0x00BB359C;
                 vars.inventoryPtr = 0x00BB3788;
                 break;
@@ -266,6 +270,7 @@ init
                 vars.roomPtr = 0x00BC40CC;
                 vars.rankPtr = 0x00BC3865;
                 vars.healthPtr = 0x00BEED1C;
+                vars.statusPtr = 0x00BEE989;
                 vars.characterPtr = 0x00BC389C;
                 vars.inventoryPtr = 0x00BC3A88;
                 break;
@@ -276,6 +281,7 @@ init
                 vars.roomPtr = 0x00BB3E4C;
                 vars.rankPtr = 0x00BB35E5;
                 vars.healthPtr = 0x00BDEA9C;
+                vars.statusPtr = 0x00BDE709;
                 vars.characterPtr = 0x00BB361C;
                 vars.inventoryPtr = 0x00BB3808;
                 break;
@@ -334,7 +340,8 @@ init
         uint time = 0; // In Game Timer
         ushort room = 0; // Room the character is in
         byte rank = 0x00; // End game rank screen
-        uint health = 0x00; // Character health
+        uint health = 0; // Character health
+        byte status = 0x00; // Character status info
         byte character = 0x00; // Character ID (0 Claire, 1 Chris, 2 Steve, 3 Wesker)
 
         // Read values from memory
@@ -342,6 +349,7 @@ init
         memory.ReadValue<ushort>(new IntPtr(vars.basePointer + vars.roomPtr), out room);
         memory.ReadValue<byte>(new IntPtr(vars.basePointer + vars.rankPtr), out rank);
         memory.ReadValue<uint>(new IntPtr(vars.basePointer + vars.healthPtr), out health);
+        memory.ReadValue<byte>(new IntPtr(vars.basePointer + vars.status), out character);
         memory.ReadValue<byte>(new IntPtr(vars.basePointer + vars.characterPtr), out character);
 
         current.rank = rank;
@@ -350,6 +358,7 @@ init
         current.time = vars.isBigEndian ? (int)vars.SwapBytesInt(time) : (int)time;
         current.room = vars.SwapBytes(room); // Room bytes always need to be swapped
         current.health = vars.isBigEndian ? (int)vars.SwapBytesInt(health) : (int)health;
+        current.status = status;
         current.character = character;
         current.inventory = new byte[11]; // Current characters inventory
 

@@ -228,7 +228,7 @@ init
             case "SLPM_650.22": // [PS2] [JP] BioHazard Code: Veronica Kanzenban
                 vars.timePtr = 0x004314A0;
                 vars.roomPtr = 0x004314B4;
-                vars.rankPtr = 0x00430C4C;
+                vars.screenPtr = 0x00430C4C;
                 vars.healthPtr = 0x004301FC;
                 vars.statusPtr = 0x0042FE6A;
                 vars.characterPtr = 0x00430C84;
@@ -238,7 +238,7 @@ init
             case "SLUS_201.84": // [PS2] [US] Resident Evil Code: Veronica X
                 vars.timePtr = 0x004339A0;
                 vars.roomPtr = 0x004339B4;
-                vars.rankPtr = 0x0043314C;
+                vars.screenPtr = 0x0043314C;
                 vars.healthPtr = 0x004326FC;
                 vars.statusPtr = 0x0043236A;
                 vars.characterPtr = 0x00433184;
@@ -248,7 +248,7 @@ init
             case "SLES_503.06": // [PS2] [EU] Resident Evil Code: Veronica X
                 vars.timePtr = 0x0044A1D0;
                 vars.roomPtr = 0x0044A1E4;
-                vars.rankPtr = 0x0044997C;
+                vars.screenPtr = 0x0044997C;
                 vars.healthPtr = 0x00448F2C;
                 vars.statusPtr = 0x00448B9A;
                 vars.characterPtr = 0x004499B4;
@@ -258,7 +258,7 @@ init
             case "NPUB30467": // [PS3] [US] Resident Evil Code: Veronica X HD
                 vars.timePtr = 0x00BB3DB8;
                 vars.roomPtr = 0x00BB3DCC;
-                vars.rankPtr = 0x00BB3565;
+                vars.screenPtr = 0x00BB3565;
                 vars.healthPtr = 0x00BDEA1C;
                 vars.statusPtr = 0x00BDE689;
                 vars.characterPtr = 0x00BB359C;
@@ -268,7 +268,7 @@ init
             case "NPEB00553": // [PS3] [EU] Resident Evil Code: Veronica X
                 vars.timePtr = 0x00BC40B8;
                 vars.roomPtr = 0x00BC40CC;
-                vars.rankPtr = 0x00BC3865;
+                vars.screenPtr = 0x00BC3865;
                 vars.healthPtr = 0x00BEED1C;
                 vars.statusPtr = 0x00BEE989;
                 vars.characterPtr = 0x00BC389C;
@@ -279,7 +279,7 @@ init
             default: // NPJB00135 - [PS3] [JP] BioHazard Code: Veronica Kanzenban
                 vars.timePtr = 0x00BB3E38;
                 vars.roomPtr = 0x00BB3E4C;
-                vars.rankPtr = 0x00BB35E5;
+                vars.screenPtr = 0x00BB35E5;
                 vars.healthPtr = 0x00BDEA9C;
                 vars.statusPtr = 0x00BDE709;
                 vars.characterPtr = 0x00BB361C;
@@ -339,10 +339,10 @@ init
     vars.UpdateValues = (Action) (() => {
         uint time = 0; // In Game Timer
         ushort room = 0; // Room the character is in
-        byte rank = 0x00; // End game rank screen
+        byte screen = 0; // Current game screen
         uint health = 0; // Character health
-        byte character = 0x00; // Character ID (0 Claire, 1 Chris, 2 Steve, 3 Wesker)
         byte status = 0; // Character status info
+        byte character = 0; // Character ID (0 Claire, 1 Chris, 2 Steve, 3 Wesker)
 
         // Read values from memory
         memory.ReadValue<uint>(new IntPtr(vars.basePointer + vars.timePtr), out time);
@@ -352,11 +352,11 @@ init
         memory.ReadValue<byte>(new IntPtr(vars.basePointer + vars.statusPtr), out status);
         memory.ReadValue<byte>(new IntPtr(vars.basePointer + vars.characterPtr), out character);
 
-        current.rank = rank;
         current.slot = 0; // Inventory slot number of the equipped item
         current.ammo = 0; // Ammo count for the equipped weapon
         current.time = vars.isBigEndian ? (int)vars.SwapBytesInt(time) : (int)time;
         current.room = vars.SwapBytes(room); // Room bytes always need to be swapped
+        current.screen = screen;
         current.health = vars.isBigEndian ? (int)vars.SwapBytesInt(health) : (int)health;
         current.status = "Normal";
         current.character = character;
@@ -582,7 +582,7 @@ split
     }
 
     // End Game Rank Screen
-    if (current.rank == 0x04 && !vars.splits["endGame"])
+    if (current.screen == 0x04 && !vars.splits["endGame"])
     {
         vars.splits["endGame"] = true;
         return settings["endGame"];

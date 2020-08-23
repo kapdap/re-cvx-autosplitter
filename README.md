@@ -1,6 +1,6 @@
-# Resident Evil/Biohazard Code: Veronica Auto Splitter
+# Resident Evil/Biohazard: Code: Veronica Auto Splitter
 
-Auto Splitter for Resident Evil/Biohazard Code: Veronica for RPCS3 and PCSX2
+Auto Splitter for Resident Evil/Biohazard: Code: Veronica for RPCS3 and PCSX2
 emulators. This Auto Splitter allows you to create splits for item pickups and
 compare against in game time. Additionaly, character health, poison status and
 equipped weapon ammo can be displayed in LiveSplit with the

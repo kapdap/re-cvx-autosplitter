@@ -347,7 +347,7 @@ init
         // Read values from memory
         memory.ReadValue<uint>(new IntPtr(vars.basePointer + vars.timePtr), out time);
         memory.ReadValue<ushort>(new IntPtr(vars.basePointer + vars.roomPtr), out room);
-        memory.ReadValue<byte>(new IntPtr(vars.basePointer + vars.rankPtr), out rank);
+        memory.ReadValue<byte>(new IntPtr(vars.basePointer + vars.screenPtr), out screen);
         memory.ReadValue<uint>(new IntPtr(vars.basePointer + vars.healthPtr), out health);
         memory.ReadValue<byte>(new IntPtr(vars.basePointer + vars.statusPtr), out status);
         memory.ReadValue<byte>(new IntPtr(vars.basePointer + vars.characterPtr), out character);

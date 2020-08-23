@@ -341,8 +341,8 @@ init
         ushort room = 0; // Room the character is in
         byte rank = 0x00; // End game rank screen
         uint health = 0; // Character health
-        byte status = 0x00; // Character status info
         byte character = 0x00; // Character ID (0 Claire, 1 Chris, 2 Steve, 3 Wesker)
+        byte status = 0; // Character status info
 
         // Read values from memory
         memory.ReadValue<uint>(new IntPtr(vars.basePointer + vars.timePtr), out time);
@@ -358,9 +358,15 @@ init
         current.time = vars.isBigEndian ? (int)vars.SwapBytesInt(time) : (int)time;
         current.room = vars.SwapBytes(room); // Room bytes always need to be swapped
         current.health = vars.isBigEndian ? (int)vars.SwapBytesInt(health) : (int)health;
-        current.status = status;
+        current.status = "Normal";
         current.character = character;
         current.inventory = new byte[11]; // Current characters inventory
+
+        // Check status for gassed or poison flags
+        if ((status & 0x20) != 0)
+            current.status = "Gassed";
+        else if ((status & 0x08) != 0)
+            current.status = "Poison";
 
         int index = -1; // Inventory array index
 

@@ -28,3 +28,8 @@ GameCube releases:
   - [**GCDJ08**] [JP] Biohazard: Code: Veronica Kanzenban 
   - [**GCDE08**] [US] Resident Evil: Code: Veronica X
   - [**GCDP08**] [EU] Resident Evil: Code: Veronica X
+  
+  
+## Announcement Links
+
+- [SRC Forums - Auto Splitter now available in LiveSplit!](https://www.speedrun.com/cvx/thread/8raeo)

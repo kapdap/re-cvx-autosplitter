@@ -1,10 +1,10 @@
 // Resident Evil/Biohazard: Code: Veronica Auto Splitter
 // By Kapdap 2020/07/16
-// Last updated 2020/08/07
 // https://github.com/kapdap/re-cvx-autosplitter
 
 state("rpcs3") {}
 state("pcsx2") {}
+state("dolphin") {}
 
 startup
 {
@@ -211,7 +211,7 @@ startup
     settings.Add("infogroup", false, "Info");
     settings.Add("infogroup1", false, "Resident Evil: Code: Veronica Auto Splitter by Kapdap", "infogroup");
     settings.Add("infogroup2", false, "Website: https://github.com/kapdap/re-cvx-autosplitter", "infogroup");
-    settings.Add("infogroup3", false, "Last Update: 2020-08-23T21:45:00+1200", "infogroup");
+    settings.Add("infogroup3", false, "Last Update: 2020-10-25T17:55:00+1200", "infogroup");
 }
 
 init
@@ -225,7 +225,37 @@ init
     vars.UpdatePointers = (Action) (() => {
         switch ((string)vars.productCode)
         {
-            case "SLPM_650.22": // [PS2] [JP] BioHazard Code: Veronica Kanzenban
+            case "GCDJ08": // [GCN] [JP] Biohazard: Code: Veronica Kanzenban
+                vars.timePtr = 0x00438B9C;
+                vars.roomPtr = 0x00438BB0;
+                vars.screenPtr = 0x00438349;
+                vars.healthPtr = 0x004378FC;
+                vars.statusPtr = 0x00437579;
+                vars.characterPtr = 0x00438380;
+                vars.inventoryPtr = 0x0043856C;
+                break;
+
+            case "GCDE08": // [GCN] [US] Resident Evil: Code: Veronica X
+                vars.timePtr = 0x004345BC;
+                vars.roomPtr = 0x004345D0;
+                vars.screenPtr = 0x00433D69;
+                vars.healthPtr = 0x0043331C;
+                vars.statusPtr = 0x00432F99;
+                vars.characterPtr = 0x00433DA0;
+                vars.inventoryPtr = 0x00433F8C;
+                break;
+
+            case "GCDP08": // [GCN] [EU] Resident Evil: Code: Veronica X
+                vars.timePtr = 0x00438B5C;
+                vars.roomPtr = 0x00438B70;
+                vars.screenPtr = 0x00438309;
+                vars.healthPtr = 0x004378BC;
+                vars.statusPtr = 0x00437539;
+                vars.characterPtr = 0x00438340;
+                vars.inventoryPtr = 0x0043852C;
+                break;
+
+            case "SLPM_650.22": // [PS2] [JP] Biohazard: Code: Veronica Kanzenban
                 vars.timePtr = 0x004314A0;
                 vars.roomPtr = 0x004314B4;
                 vars.screenPtr = 0x00430C4C;
@@ -235,7 +265,7 @@ init
                 vars.inventoryPtr = 0x00430E70;
                 break;
 
-            case "SLUS_201.84": // [PS2] [US] Resident Evil Code: Veronica X
+            case "SLUS_201.84": // [PS2] [US] Resident Evil: Code: Veronica X
                 vars.timePtr = 0x004339A0;
                 vars.roomPtr = 0x004339B4;
                 vars.screenPtr = 0x0043314C;
@@ -245,7 +275,7 @@ init
                 vars.inventoryPtr = 0x00433370;
                 break;
 
-            case "SLES_503.06": // [PS2] [EU] Resident Evil Code: Veronica X
+            case "SLES_503.06": // [PS2] [EU] Resident Evil: Code: Veronica X
                 vars.timePtr = 0x0044A1D0;
                 vars.roomPtr = 0x0044A1E4;
                 vars.screenPtr = 0x0044997C;
@@ -275,8 +305,7 @@ init
                 vars.inventoryPtr = 0x00BC3A88;
                 break;
 
-            // Default to PS3 JP release - most commonly speedrun version
-            default: // NPJB00135 - [PS3] [JP] BioHazard Code: Veronica Kanzenban
+            default: // NPJB00135 - [PS3] [JP] Biohazard Code: Veronica Kanzenban
                 vars.timePtr = 0x00BB3E38;
                 vars.roomPtr = 0x00BB3E4C;
                 vars.screenPtr = 0x00BB35E5;
@@ -296,18 +325,38 @@ init
             vars.gameProcess = game.ProcessName;
 
             // Set emulator base pointer and edianess values
-            switch ((string)vars.gameProcess)
+            switch ((string)vars.gameProcess.ToLower())
             {
+                case "dolphin":
+                    vars.isBigEndian = true;
+                    break;
+
                 case "pcsx2":
-                    vars.basePointer = 0x20000000;
                     vars.isBigEndian = false;
                     break;
 
                 default: // rpcs3
-                    vars.basePointer = 0x300000000;
                     vars.isBigEndian = true;
                     break;
             }
+        }
+    });
+
+    // Set emulator base pointer
+    vars.UpdatePointer = (Action) (() => {
+        switch ((string)vars.gameProcess.ToLower())
+        {
+            case "dolphin":
+                vars.basePointer = memory.ReadValue<uint>(new IntPtr(0x11CDFD8));
+                break;
+
+            case "pcsx2":
+                vars.basePointer = 0x20000000;
+                break;
+
+            default: // rpcs3
+                vars.basePointer = 0x300000000;
+                break;
         }
     });
 
@@ -316,8 +365,12 @@ init
         string productCode;
 
         // Read game product code from memory
-        switch ((string)vars.gameProcess)
+        switch ((string)vars.gameProcess.ToLower())
         {
+            case "dolphin":
+                productCode = memory.ReadString(new IntPtr(vars.basePointer), 6);
+                break;
+
             case "pcsx2":
                 productCode = memory.ReadString(new IntPtr(vars.basePointer + 0x00015B90), 11);
                 break;
@@ -408,6 +461,7 @@ init
 
     // Initialise values
     vars.UpdateProcess();
+    vars.UpdatePointer();
     vars.UpdateProduct();
     vars.UpdateValues();
 }
@@ -421,6 +475,7 @@ start
 update
 {
     vars.UpdateProcess();
+    vars.UpdatePointer();
     vars.UpdateProduct();
     vars.UpdateValues();
 

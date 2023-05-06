@@ -1,5 +1,5 @@
 // Resident Evil/Biohazard: Code: Veronica Auto Splitter
-// By Kapdap 2020/07/16
+// By Kapdap 2023/05/06
 // https://github.com/kapdap/re-cvx-autosplitter
 
 state("rpcs3") {}
@@ -217,16 +217,25 @@ startup
     settings.Add("infogroup", false, "Info");
     settings.Add("infogroup1", false, "Resident Evil: Code: Veronica Auto Splitter by Kapdap", "infogroup");
     settings.Add("infogroup2", false, "Website: https://github.com/kapdap/re-cvx-autosplitter", "infogroup");
-    settings.Add("infogroup3", false, "Last Update: 2020-12-05T13:00:00+1200", "infogroup");
+    settings.Add("infogroup3", false, "Last Update: 2023-05-06T20:00:00+1200", "infogroup");
 }
 
 init
 {
     vars.lastSplit = String.Empty; // Name of the most recent split
     vars.gameProcess = String.Empty; // Used to detect when the process has changed
-    vars.productCode = String.Empty; // Used to detect when the game release has changed
-    vars.basePointer = IntPtr.Zero; // Emulator virtual memory base pointer
-    vars.isBigEndian = false; // Console uses big endian (e.g. PS3 and GCN)
+    vars.productCode = String.Empty; // Used to detect when the game release has chang
+    vars.isBigEndian = false; // Console uses big endian (e.g. PS3 and GCN)ed
+
+    IntPtr basePointer = IntPtr.Zero; // Emulator virtual memory base pointer
+
+    int timePtr = 0;
+    int roomPtr = 0;
+    int screenPtr = 0;
+    int healthPtr = 0;
+    int statusPtr = 0;
+    int characterPtr = 0;
+    int inventoryPtr = 0;
 
     // Log splits
     vars.LogSplit = (Action<string>)((text) => {
@@ -270,93 +279,93 @@ init
         switch ((string)vars.productCode)
         {
             case "GCDJ08": // [GCN] [JP] Biohazard: Code: Veronica Kanzenban
-                vars.timePtr = 0x00438B9C;
-                vars.roomPtr = 0x00438BB0;
-                vars.screenPtr = 0x00438349;
-                vars.healthPtr = 0x004378FC;
-                vars.statusPtr = 0x00437579;
-                vars.characterPtr = 0x00438380;
-                vars.inventoryPtr = 0x0043856C;
+                timePtr = 0x00438B9C;
+                roomPtr = 0x00438BB0;
+                screenPtr = 0x00438349;
+                healthPtr = 0x004378FC;
+                statusPtr = 0x00437579;
+                characterPtr = 0x00438380;
+                inventoryPtr = 0x0043856C;
                 break;
 
             case "GCDE08": // [GCN] [US] Resident Evil: Code: Veronica X
-                vars.timePtr = 0x004345BC;
-                vars.roomPtr = 0x004345D0;
-                vars.screenPtr = 0x00433D69;
-                vars.healthPtr = 0x0043331C;
-                vars.statusPtr = 0x00432F99;
-                vars.characterPtr = 0x00433DA0;
-                vars.inventoryPtr = 0x00433F8C;
+                timePtr = 0x004345BC;
+                roomPtr = 0x004345D0;
+                screenPtr = 0x00433D69;
+                healthPtr = 0x0043331C;
+                statusPtr = 0x00432F99;
+                characterPtr = 0x00433DA0;
+                inventoryPtr = 0x00433F8C;
                 break;
 
             case "GCDP08": // [GCN] [EU] Resident Evil: Code: Veronica X
-                vars.timePtr = 0x00438B5C;
-                vars.roomPtr = 0x00438B70;
-                vars.screenPtr = 0x00438309;
-                vars.healthPtr = 0x004378BC;
-                vars.statusPtr = 0x00437539;
-                vars.characterPtr = 0x00438340;
-                vars.inventoryPtr = 0x0043852C;
+                timePtr = 0x00438B5C;
+                roomPtr = 0x00438B70;
+                screenPtr = 0x00438309;
+                healthPtr = 0x004378BC;
+                statusPtr = 0x00437539;
+                characterPtr = 0x00438340;
+                inventoryPtr = 0x0043852C;
                 break;
 
             case "SLPM_650.22": // [PS2] [JP] Biohazard: Code: Veronica Kanzenban
-                vars.timePtr = 0x004314A0;
-                vars.roomPtr = 0x004314B4;
-                vars.screenPtr = 0x00430C4C;
-                vars.healthPtr = 0x004301FC;
-                vars.statusPtr = 0x0042FE6A;
-                vars.characterPtr = 0x00430C84;
-                vars.inventoryPtr = 0x00430E70;
+                timePtr = 0x004314A0;
+                roomPtr = 0x004314B4;
+                screenPtr = 0x00430C4C;
+                healthPtr = 0x004301FC;
+                statusPtr = 0x0042FE6A;
+                characterPtr = 0x00430C84;
+                inventoryPtr = 0x00430E70;
                 break;
 
             case "SLUS_201.84": // [PS2] [US] Resident Evil: Code: Veronica X
-                vars.timePtr = 0x004339A0;
-                vars.roomPtr = 0x004339B4;
-                vars.screenPtr = 0x0043314C;
-                vars.healthPtr = 0x004326FC;
-                vars.statusPtr = 0x0043236A;
-                vars.characterPtr = 0x00433184;
-                vars.inventoryPtr = 0x00433370;
+                timePtr = 0x004339A0;
+                roomPtr = 0x004339B4;
+                screenPtr = 0x0043314C;
+                healthPtr = 0x004326FC;
+                statusPtr = 0x0043236A;
+                characterPtr = 0x00433184;
+                inventoryPtr = 0x00433370;
                 break;
 
             case "SLES_503.06": // [PS2] [EU] Resident Evil: Code: Veronica X
-                vars.timePtr = 0x0044A1D0;
-                vars.roomPtr = 0x0044A1E4;
-                vars.screenPtr = 0x0044997C;
-                vars.healthPtr = 0x00448F2C;
-                vars.statusPtr = 0x00448B9A;
-                vars.characterPtr = 0x004499B4;
-                vars.inventoryPtr = 0x00449BA0;
+                timePtr = 0x0044A1D0;
+                roomPtr = 0x0044A1E4;
+                screenPtr = 0x0044997C;
+                healthPtr = 0x00448F2C;
+                statusPtr = 0x00448B9A;
+                characterPtr = 0x004499B4;
+                inventoryPtr = 0x00449BA0;
                 break;
 
             case "NPUB30467": // [PS3] [US] Resident Evil Code: Veronica X HD
-                vars.timePtr = 0x00BB3DB8;
-                vars.roomPtr = 0x00BB3DCC;
-                vars.screenPtr = 0x00BB3565;
-                vars.healthPtr = 0x00BDEA1C;
-                vars.statusPtr = 0x00BDE689;
-                vars.characterPtr = 0x00BB359C;
-                vars.inventoryPtr = 0x00BB3788;
+                timePtr = 0x00BB3DB8;
+                roomPtr = 0x00BB3DCC;
+                screenPtr = 0x00BB3565;
+                healthPtr = 0x00BDEA1C;
+                statusPtr = 0x00BDE689;
+                characterPtr = 0x00BB359C;
+                inventoryPtr = 0x00BB3788;
                 break;
 
             case "NPEB00553": // [PS3] [EU] Resident Evil Code: Veronica X
-                vars.timePtr = 0x00BC40B8;
-                vars.roomPtr = 0x00BC40CC;
-                vars.screenPtr = 0x00BC3865;
-                vars.healthPtr = 0x00BEED1C;
-                vars.statusPtr = 0x00BEE989;
-                vars.characterPtr = 0x00BC389C;
-                vars.inventoryPtr = 0x00BC3A88;
+                timePtr = 0x00BC40B8;
+                roomPtr = 0x00BC40CC;
+                screenPtr = 0x00BC3865;
+                healthPtr = 0x00BEED1C;
+                statusPtr = 0x00BEE989;
+                characterPtr = 0x00BC389C;
+                inventoryPtr = 0x00BC3A88;
                 break;
 
             default: // NPJB00135 - [PS3] [JP] Biohazard Code: Veronica Kanzenban
-                vars.timePtr = 0x00BB3E38;
-                vars.roomPtr = 0x00BB3E4C;
-                vars.screenPtr = 0x00BB35E5;
-                vars.healthPtr = 0x00BDEA9C;
-                vars.statusPtr = 0x00BDE709;
-                vars.characterPtr = 0x00BB361C;
-                vars.inventoryPtr = 0x00BB3808;
+                timePtr = 0x00BB3E38;
+                roomPtr = 0x00BB3E4C;
+                screenPtr = 0x00BB35E5;
+                healthPtr = 0x00BDEA9C;
+                statusPtr = 0x00BDE709;
+                characterPtr = 0x00BB361C;
+                inventoryPtr = 0x00BB3808;
                 break;
         }
     });
@@ -390,16 +399,24 @@ init
     vars.UpdatePointer = (Action) (() => {
         switch ((string)vars.gameProcess.ToLower())
         {
-            case "dolphin": // Dolphin 5.0 stable
-                vars.basePointer = memory.ReadValue<uint>(new IntPtr(0x11CDFD8));
+            case "dolphin":
+                try
+                {
+                    // https://github.com/Jujstme/Autosplitters/blob/e6adbd04390cabd0a594f0b0ad47a64884a64b03/Template_GameCube.asl#L37
+                    basePointer = game.MemoryPages(true).First(p => p.Type == MemPageType.MEM_MAPPED && p.State == MemPageState.MEM_COMMIT && (int)p.RegionSize == 0x2000000).BaseAddress;
+                }
+                catch (Exception e)
+                {
+                    basePointer = IntPtr.Zero;
+                }
                 break;
 
             case "pcsx2":
-                vars.basePointer = 0x20000000;
+                basePointer = new IntPtr(0x20000000);
                 break;
 
             default: // rpcs3
-                vars.basePointer = 0x300000000;
+                basePointer = new IntPtr(0x300000000);
                 break;
         }
     });
@@ -412,15 +429,15 @@ init
         switch ((string)vars.gameProcess.ToLower())
         {
             case "dolphin":
-                productCode = memory.ReadString(new IntPtr(vars.basePointer), 6);
+                productCode = memory.ReadString(basePointer, 6);
                 break;
 
             case "pcsx2":
-                productCode = memory.ReadString(new IntPtr(vars.basePointer + 0x00015B90), 11);
+                productCode = memory.ReadString(IntPtr.Add(basePointer, 0x00015B90), 11);
                 break;
 
             default: // rpcs3
-                productCode = memory.ReadString(new IntPtr(vars.basePointer + 0x20010251), 9);
+                productCode = memory.ReadString(IntPtr.Add(basePointer, 0x20010251), 9);
                 break;
         }
 
@@ -442,12 +459,12 @@ init
         byte character = 0; // Character ID (0 Claire, 1 Chris, 2 Steve, 3 Wesker)
 
         // Read values from memory
-        memory.ReadValue<uint>(new IntPtr(vars.basePointer + vars.timePtr), out time);
-        memory.ReadValue<ushort>(new IntPtr(vars.basePointer + vars.roomPtr), out room);
-        memory.ReadValue<byte>(new IntPtr(vars.basePointer + vars.screenPtr), out screen);
-        memory.ReadValue<uint>(new IntPtr(vars.basePointer + vars.healthPtr), out health);
-        memory.ReadValue<byte>(new IntPtr(vars.basePointer + vars.statusPtr), out status);
-        memory.ReadValue<byte>(new IntPtr(vars.basePointer + vars.characterPtr), out character);
+        memory.ReadValue<uint>(IntPtr.Add(basePointer, timePtr), out time);
+        memory.ReadValue<ushort>(IntPtr.Add(basePointer, roomPtr), out room);
+        memory.ReadValue<byte>(IntPtr.Add(basePointer, screenPtr), out screen);
+        memory.ReadValue<uint>(IntPtr.Add(basePointer, healthPtr), out health);
+        memory.ReadValue<byte>(IntPtr.Add(basePointer, statusPtr), out status);
+        memory.ReadValue<byte>(IntPtr.Add(basePointer, characterPtr), out character);
 
         current.slot = 0; // Inventory slot number of the equipped item
         current.ammo = 0; // Ammo count for the equipped weapon
@@ -468,7 +485,7 @@ init
         int index = -1; // Inventory array index
 
         // Pointer to the current characters inventory table
-        IntPtr pointer = new IntPtr(vars.basePointer + vars.inventoryPtr + (character * 0x40));
+        IntPtr pointer = IntPtr.Add(basePointer, inventoryPtr + (character * 0x40));
 
         // Read inventory of the current character
         for (int i = 0; i < 12; ++i)

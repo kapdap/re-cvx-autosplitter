@@ -6,7 +6,7 @@ compare against in game time. Additionaly, character health, poison status and
 equipped weapon ammo can be displayed in LiveSplit with the
 [ASL Var Viewer](https://github.com/hawkerm/LiveSplit.ASLVarViewer) component.
 
-*Last Update: 2020-12-05T13:00:00+1200*
+*Last Update: 2023-05-06T20:00:00+1200*
 
 ## Supported Games
 The following emulators and game releases are currently supported.
@@ -32,3 +32,7 @@ GameCube releases:
 ## Announcement Links
 
 - [SRC Forums - Auto Splitter now available in LiveSplit!](https://www.speedrun.com/cvx/thread/8raeo)
+
+## Acknowledgements
+
+* [Jujstme](https://github.com/Jujstme/) - Improved Dolphin support.

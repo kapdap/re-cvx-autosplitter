@@ -405,7 +405,7 @@ init
                     // https://github.com/Jujstme/Autosplitters/blob/e6adbd04390cabd0a594f0b0ad47a64884a64b03/Template_GameCube.asl#L37
                     basePointer = game.MemoryPages(true).First(p => p.Type == MemPageType.MEM_MAPPED && p.State == MemPageState.MEM_COMMIT && (int)p.RegionSize == 0x2000000).BaseAddress;
                 }
-                catch (Exception e)
+                catch
                 {
                     basePointer = IntPtr.Zero;
                 }
@@ -423,7 +423,7 @@ init
 
     // Detects if the game release has changed
     vars.UpdateProduct = (Action) (() => {
-        string productCode;
+        string productCode = String.Empty;
 
         // Read game product code from memory
         switch ((string)vars.gameProcess.ToLower())
@@ -437,7 +437,15 @@ init
                 break;
 
             default: // rpcs3
-                productCode = memory.ReadString(IntPtr.Add(basePointer, 0x20010251), 9);
+				IntPtr pointer = IntPtr.Zero;
+				
+				SigScanTarget target = new SigScanTarget(-0xE0, "50 53 33 5F 47 41 4D 45 00 00 00 00 00 00 00 00 08 00 00 00 00 00 00 00 0F 00 00 00 00 00 00 00 30 30");
+				SignatureScanner scanner = new SignatureScanner(game, game.MainModule.BaseAddress, (int)game.MainModule.ModuleMemorySize);
+				
+				if((pointer = scanner.Scan(target)) == IntPtr.Zero)
+					break;
+				
+				productCode = (pointer != IntPtr.Zero) ? memory.ReadString(pointer, 9) : String.Empty;
                 break;
         }
 

@@ -437,15 +437,13 @@ init
                 break;
 
             default: // rpcs3
-                IntPtr pointer = IntPtr.Zero;
-                
                 SigScanTarget target = new SigScanTarget(-0xE0, "50 53 33 5F 47 41 4D 45 00 00 00 00 00 00 00 00 08 00 00 00 00 00 00 00 0F 00 00 00 00 00 00 00 30 30");
                 SignatureScanner scanner = new SignatureScanner(game, game.MainModule.BaseAddress, (int)game.MainModule.ModuleMemorySize);
                 
-                if((pointer = scanner.Scan(target)) == IntPtr.Zero)
-                    break;
+                IntPtr pointer;
+                if((pointer = scanner.Scan(target)) != IntPtr.Zero)
+                    productCode = memory.ReadString(pointer, 9);
                 
-                productCode = (pointer != IntPtr.Zero) ? memory.ReadString(pointer, 9) : String.Empty;
                 break;
         }
 

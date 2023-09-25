@@ -224,8 +224,8 @@ init
 {
     vars.lastSplit = String.Empty; // Name of the most recent split
     vars.gameProcess = String.Empty; // Used to detect when the process has changed
-    vars.productCode = String.Empty; // Used to detect when the game release has chang
-    vars.isBigEndian = false; // Console uses big endian (e.g. PS3 and GCN)ed
+    vars.productCode = String.Empty; // Used to detect when the game release has changed
+    vars.isBigEndian = false; // Console uses big endian (e.g. PS3 and GCN)
 
     IntPtr basePointer = IntPtr.Zero; // Emulator virtual memory base pointer
 
@@ -437,15 +437,15 @@ init
                 break;
 
             default: // rpcs3
-				IntPtr pointer = IntPtr.Zero;
-				
-				SigScanTarget target = new SigScanTarget(-0xE0, "50 53 33 5F 47 41 4D 45 00 00 00 00 00 00 00 00 08 00 00 00 00 00 00 00 0F 00 00 00 00 00 00 00 30 30");
-				SignatureScanner scanner = new SignatureScanner(game, game.MainModule.BaseAddress, (int)game.MainModule.ModuleMemorySize);
-				
-				if((pointer = scanner.Scan(target)) == IntPtr.Zero)
-					break;
-				
-				productCode = (pointer != IntPtr.Zero) ? memory.ReadString(pointer, 9) : String.Empty;
+                IntPtr pointer = IntPtr.Zero;
+                
+                SigScanTarget target = new SigScanTarget(-0xE0, "50 53 33 5F 47 41 4D 45 00 00 00 00 00 00 00 00 08 00 00 00 00 00 00 00 0F 00 00 00 00 00 00 00 30 30");
+                SignatureScanner scanner = new SignatureScanner(game, game.MainModule.BaseAddress, (int)game.MainModule.ModuleMemorySize);
+                
+                if((pointer = scanner.Scan(target)) == IntPtr.Zero)
+                    break;
+                
+                productCode = (pointer != IntPtr.Zero) ? memory.ReadString(pointer, 9) : String.Empty;
                 break;
         }
 

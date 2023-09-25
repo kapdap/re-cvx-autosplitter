@@ -4,6 +4,11 @@
 
 state("rpcs3") {}
 state("pcsx2") {}
+state("pcsx2-qt") {}
+state("pcsx2-qtx64") {}
+state("pcsx2-qtx64-avx2") {}
+state("pcsx2x64") {}
+state("pcsx2x64-avx2") {}
 state("dolphin") {}
 
 startup
@@ -385,6 +390,11 @@ init
                     break;
 
                 case "pcsx2":
+                case "pcsx2-qt":
+                case "pcsx2-qtx64":
+                case "pcsx2-qtx64-avx2":
+                case "pcsx2x64":
+                case "pcsx2x64-avx2":
                     vars.isBigEndian = false;
                     break;
 
@@ -411,8 +421,17 @@ init
                 }
                 break;
 
-            case "pcsx2":
+            case "pcsx2": // PCSX2 1.6 and earlier
                 basePointer = new IntPtr(0x20000000);
+                break;
+
+            case "pcsx2-qt":
+            case "pcsx2-qtx64":
+            case "pcsx2-qtx64-avx2":
+            case "pcsx2x64":
+            case "pcsx2x64-avx2": // PCSX2 1.7+
+                // TODO: Get PCSX2 1.7+ base pointer
+                basePointer = IntPtr.Zero;
                 break;
 
             default: // rpcs3
@@ -432,8 +451,19 @@ init
                 productCode = memory.ReadString(basePointer, 6);
                 break;
 
-            case "pcsx2":
+            case "pcsx2": // PCSX2 1.6 and earlier
                 productCode = memory.ReadString(IntPtr.Add(basePointer, 0x00015B90), 11);
+                break;
+
+            case "pcsx2x64":
+            case "pcsx2x64-avx2": // PCSX2 1.7+ wxWidgets
+                productCode = memory.ReadString(IntPtr.Add(basePointer, 0x000155D0), 11);
+                break;
+
+            case "pcsx2-qt":
+            case "pcsx2-qtx64":
+            case "pcsx2-qtx64-avx2": // PCSX2 1.7+ Qt
+                productCode = memory.ReadString(IntPtr.Add(basePointer, 0x00012610), 11);
                 break;
 
             default: // rpcs3

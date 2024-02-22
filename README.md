@@ -1,12 +1,19 @@
 # Resident Evil/Biohazard: Code: Veronica Auto Splitter
 
-Auto Splitter for Resident Evil/Biohazard: Code: Veronica for RPCS3, PCSX2 and Dolphin
+<img align="right" width="300" height="300" src="_assets/screenshot.png" alt="Resident Evil/Biohazard: Code: Veronica Auto Splitter Screenshot">
+
+A [LiveSplit](https://livesplit.org/) Auto Splitter for Resident Evil/Biohazard: Code: Veronica for RPCS3, PCSX2 and Dolphin
 emulators. This Auto Splitter allows you to create splits for item pickups and
 compare against in game time. Additionaly, character health, poison status and
 equipped weapon ammo can be displayed in LiveSplit with the
 [ASL Var Viewer](https://github.com/hawkerm/LiveSplit.ASLVarViewer) component.
 
 *Last Update: 2023-05-06T20:00:00+1200*
+
+## Extras
+
+- [Sample Splits](splits/Resident%20Evil%20Code%20Veronica.lss)
+- [Sample Layout](splits/Resident%20Evil%20Code%20Veronica.lsl)
 
 ## Supported Games
 The following emulators and game releases are currently supported.

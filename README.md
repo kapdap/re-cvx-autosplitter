@@ -12,8 +12,10 @@ equipped weapon ammo can be displayed in LiveSplit with the
 
 ## Extras
 
-- [Sample Splits](splits/Resident%20Evil%20Code%20Veronica.lss)
-- [Sample Layout](splits/Resident%20Evil%20Code%20Veronica.lsl)
+Right click and Save As to download extra files.
+
+- [Sample Splits](https://raw.githubusercontent.com/kapdap/re-cvx-autosplitter/master/splits/Resident%20Evil%20Code%20Veronica.lss)
+- [Sample Layout](https://raw.githubusercontent.com/kapdap/re-cvx-autosplitter/master/splits/Resident%20Evil%20Code%20Veronica.lsl)
 
 ## Supported Games
 The following emulators and game releases are currently supported.

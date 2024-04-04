@@ -226,7 +226,7 @@ startup
     settings.Add("infogroup", false, "Info");
     settings.Add("infogroup1", false, "Resident Evil: Code: Veronica Auto Splitter by Kapdap", "infogroup");
     settings.Add("infogroup2", false, "Website: https://github.com/kapdap/re-cvx-autosplitter", "infogroup");
-    settings.Add("infogroup3", false, "Last Update: 2024-04-04T15:30:00+1200", "infogroup");
+    settings.Add("infogroup3", false, "Last Update: 2024-04-04T23:00:00+1200", "infogroup");
 }
 
 init
@@ -321,7 +321,7 @@ init
         { "inventoryPtr", 0x00BC3A88 }
     });
     vars.productPointers.Add("NPJB00135", new Dictionary<string, int>
-    { // NPJB00135 - [PS3] [JP] Biohazard Code: Veronica Kanzenban
+    { // [PS3] [JP] Biohazard Code: Veronica Kanzenban
         { "timePtr", 0x00BB3E38 },
         { "roomPtr", 0x00BB3E4C },
         { "screenPtr", 0x00BB35E5 },
@@ -419,8 +419,8 @@ init
                 productPointer = basePointer;
                 vars.isBigEndian = true;
 
-                print("dolphin base pointer: " + productPointer.ToString("X8"));
-                print("dolphin product pointer: " + productPointer.ToString("X8"));
+                print("dolphin basePointer: " + basePointer.ToString("X8"));
+                print("dolphin productPointer: " + productPointer.ToString("X8"));
                 break;
 
             case "pcsx2": // TODO: Add PCSX2 1.7+ support
@@ -428,7 +428,7 @@ init
                 productPointer = IntPtr.Add(basePointer, 0x00015B90);
                 vars.isBigEndian = false;
                 
-                print("pcsx2 basePointer: " + productPointer.ToString("X8"));
+                print("pcsx2 basePointer: " + basePointer.ToString("X8"));
                 print("pcsx2 productPointer: " + productPointer.ToString("X8"));
                 break;
 
@@ -441,8 +441,8 @@ init
                 productPointer = scanner.Scan(target);
                 vars.isBigEndian = true;
                 
-                print("rpcs3 basePointer: " + productPointer.ToString("X8"));
-                print("rpcs3 productPointer: " + productPointer.ToString("X8"));
+                print("rpcs3 basePointer: " + basePointer.ToString("X16"));
+                print("rpcs3 productPointer: " + productPointer.ToString("X16"));
                 break;
 
             default:
@@ -450,7 +450,7 @@ init
                 productPointer = IntPtr.Zero;
                 vars.isBigEndian = false;
                 
-                print("default basePointer: " + productPointer.ToString("X8"));
+                print("default basePointer: " + basePointer.ToString("X8"));
                 print("default productPointer: " + productPointer.ToString("X8"));
                 break;
         }

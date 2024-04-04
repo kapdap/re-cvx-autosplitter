@@ -223,7 +223,6 @@ startup
 init
 {
     vars.lastSplit = String.Empty; // Name of the most recent split
-    vars.gameProcess = String.Empty; // Used to detect when the process has changed
     vars.productCode = String.Empty; // Used to detect when the game release has changed
     vars.isBigEndian = false; // Console uses big endian (e.g. PS3 and GCN)
 

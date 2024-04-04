@@ -228,6 +228,99 @@ init
     vars.isBigEndian = false; // Console uses big endian (e.g. PS3 and GCN)
 
     IntPtr basePointer = IntPtr.Zero; // Emulator virtual memory base pointer
+    IntPtr productPointer = IntPtr.Zero; // Product code memory pointer
+
+    vars.productPointers = new Dictionary<string, Dictionary<string, int>>();
+    vars.productPointers.Add("GCDJ08", new Dictionary<string, int>
+    {
+        { "timePtr", 0x00438B9C },
+        { "roomPtr", 0x00438BB0 },
+        { "screenPtr", 0x00438349 },
+        { "healthPtr", 0x004378FC },
+        { "statusPtr", 0x00437579 },
+        { "characterPtr", 0x00438380 },
+        { "inventoryPtr", 0x0043856C }
+    });
+    vars.productPointers.Add("GCDE08", new Dictionary<string, int>
+    {
+        { "timePtr", 0x004345BC },
+        { "roomPtr", 0x004345D0 },
+        { "screenPtr", 0x00433D69 },
+        { "healthPtr", 0x0043331C },
+        { "statusPtr", 0x00432F99 },
+        { "characterPtr", 0x00433DA0 },
+        { "inventoryPtr", 0x00433F8C }
+    });
+    vars.productPointers.Add("GCDP08", new Dictionary<string, int>
+    {
+        { "timePtr", 0x00438B5C },
+        { "roomPtr", 0x00438B70 },
+        { "screenPtr", 0x00438309 },
+        { "healthPtr", 0x004378BC },
+        { "statusPtr", 0x00437539 },
+        { "characterPtr", 0x00438340 },
+        { "inventoryPtr", 0x0043852C }
+    });
+    vars.productPointers.Add("SLPM_650.22", new Dictionary<string, int>
+    {
+        { "timePtr", 0x004314A0 },
+        { "roomPtr", 0x004314B4 },
+        { "screenPtr", 0x00430C4C },
+        { "healthPtr", 0x004301FC },
+        { "statusPtr", 0x0042FE6A },
+        { "characterPtr", 0x00430C84 },
+        { "inventoryPtr", 0x00430E70 }
+    });
+    vars.productPointers.Add("SLUS_201.84", new Dictionary<string, int>
+    {
+        { "timePtr", 0x004339A0 },
+        { "roomPtr", 0x004339B4 },
+        { "screenPtr", 0x0043314C },
+        { "healthPtr", 0x004326FC },
+        { "statusPtr", 0x0043236A },
+        { "characterPtr", 0x00433184 },
+        { "inventoryPtr", 0x00433370 }
+    });
+    vars.productPointers.Add("SLES_503.06", new Dictionary<string, int>
+    {
+        { "timePtr", 0x0044A1D0 },
+        { "roomPtr", 0x0044A1E4 },
+        { "screenPtr", 0x0044997C },
+        { "healthPtr", 0x00448F2C },
+        { "statusPtr", 0x00448B9A },
+        { "characterPtr", 0x004499B4 },
+        { "inventoryPtr", 0x00449BA0 }
+    });
+    vars.productPointers.Add("NPUB30467", new Dictionary<string, int>
+    {
+        { "timePtr", 0x00BB3DB8 },
+        { "roomPtr", 0x00BB3DCC },
+        { "screenPtr", 0x00BB3565 },
+        { "healthPtr", 0x00BDEA1C },
+        { "statusPtr", 0x00BDE689 },
+        { "characterPtr", 0x00BB359C },
+        { "inventoryPtr", 0x00BB3788 }
+    });
+    vars.productPointers.Add("NPEB00553", new Dictionary<string, int>
+    {
+        { "timePtr", 0x00BC40B8 },
+        { "roomPtr", 0x00BC40CC },
+        { "screenPtr", 0x00BC3865 },
+        { "healthPtr", 0x00BEED1C },
+        { "statusPtr", 0x00BEE989 },
+        { "characterPtr", 0x00BC389C },
+        { "inventoryPtr", 0x00BC3A88 }
+    });
+    vars.productPointers.Add("NPJB00135", new Dictionary<string, int>
+    {
+        { "timePtr", 0x00BB3E38 },
+        { "roomPtr", 0x00BB3E4C },
+        { "screenPtr", 0x00BB35E5 },
+        { "healthPtr", 0x00BDEA9C },
+        { "statusPtr", 0x00BDE709 },
+        { "characterPtr", 0x00BB361C },
+        { "inventoryPtr", 0x00BB3808 }
+    });
 
     int timePtr = 0;
     int roomPtr = 0;
@@ -276,128 +369,32 @@ init
 
     // Sets memory pointers for the detected game release
     vars.UpdatePointers = (Action) (() => {
-        switch ((string)vars.productCode)
+        string product = (string)vars.productCode ?? String.Empty;
+        if (vars.productPointers.ContainsKey(product))
         {
-            case "GCDJ08": // [GCN] [JP] Biohazard: Code: Veronica Kanzenban
-                timePtr = 0x00438B9C;
-                roomPtr = 0x00438BB0;
-                screenPtr = 0x00438349;
-                healthPtr = 0x004378FC;
-                statusPtr = 0x00437579;
-                characterPtr = 0x00438380;
-                inventoryPtr = 0x0043856C;
-                break;
-
-            case "GCDE08": // [GCN] [US] Resident Evil: Code: Veronica X
-                timePtr = 0x004345BC;
-                roomPtr = 0x004345D0;
-                screenPtr = 0x00433D69;
-                healthPtr = 0x0043331C;
-                statusPtr = 0x00432F99;
-                characterPtr = 0x00433DA0;
-                inventoryPtr = 0x00433F8C;
-                break;
-
-            case "GCDP08": // [GCN] [EU] Resident Evil: Code: Veronica X
-                timePtr = 0x00438B5C;
-                roomPtr = 0x00438B70;
-                screenPtr = 0x00438309;
-                healthPtr = 0x004378BC;
-                statusPtr = 0x00437539;
-                characterPtr = 0x00438340;
-                inventoryPtr = 0x0043852C;
-                break;
-
-            case "SLPM_650.22": // [PS2] [JP] Biohazard: Code: Veronica Kanzenban
-                timePtr = 0x004314A0;
-                roomPtr = 0x004314B4;
-                screenPtr = 0x00430C4C;
-                healthPtr = 0x004301FC;
-                statusPtr = 0x0042FE6A;
-                characterPtr = 0x00430C84;
-                inventoryPtr = 0x00430E70;
-                break;
-
-            case "SLUS_201.84": // [PS2] [US] Resident Evil: Code: Veronica X
-                timePtr = 0x004339A0;
-                roomPtr = 0x004339B4;
-                screenPtr = 0x0043314C;
-                healthPtr = 0x004326FC;
-                statusPtr = 0x0043236A;
-                characterPtr = 0x00433184;
-                inventoryPtr = 0x00433370;
-                break;
-
-            case "SLES_503.06": // [PS2] [EU] Resident Evil: Code: Veronica X
-                timePtr = 0x0044A1D0;
-                roomPtr = 0x0044A1E4;
-                screenPtr = 0x0044997C;
-                healthPtr = 0x00448F2C;
-                statusPtr = 0x00448B9A;
-                characterPtr = 0x004499B4;
-                inventoryPtr = 0x00449BA0;
-                break;
-
-            case "NPUB30467": // [PS3] [US] Resident Evil Code: Veronica X HD
-                timePtr = 0x00BB3DB8;
-                roomPtr = 0x00BB3DCC;
-                screenPtr = 0x00BB3565;
-                healthPtr = 0x00BDEA1C;
-                statusPtr = 0x00BDE689;
-                characterPtr = 0x00BB359C;
-                inventoryPtr = 0x00BB3788;
-                break;
-
-            case "NPEB00553": // [PS3] [EU] Resident Evil Code: Veronica X
-                timePtr = 0x00BC40B8;
-                roomPtr = 0x00BC40CC;
-                screenPtr = 0x00BC3865;
-                healthPtr = 0x00BEED1C;
-                statusPtr = 0x00BEE989;
-                characterPtr = 0x00BC389C;
-                inventoryPtr = 0x00BC3A88;
-                break;
-
-            default: // NPJB00135 - [PS3] [JP] Biohazard Code: Veronica Kanzenban
-                timePtr = 0x00BB3E38;
-                roomPtr = 0x00BB3E4C;
-                screenPtr = 0x00BB35E5;
-                healthPtr = 0x00BDEA9C;
-                statusPtr = 0x00BDE709;
-                characterPtr = 0x00BB361C;
-                inventoryPtr = 0x00BB3808;
-                break;
+            timePtr = vars.productPointers[product]["timePtr"];
+            roomPtr = vars.productPointers[product]["roomPtr"];
+            screenPtr = vars.productPointers[product]["screenPtr"];
+            healthPtr = vars.productPointers[product]["healthPtr"];
+            statusPtr = vars.productPointers[product]["statusPtr"];
+            characterPtr = vars.productPointers[product]["characterPtr"];
+            inventoryPtr = vars.productPointers[product]["inventoryPtr"];
+        }
+        else
+        {
+            timePtr = 0;
+            roomPtr = 0;
+            screenPtr = 0;
+            healthPtr = 0;
+            statusPtr = 0;
+            characterPtr = 0;
+            inventoryPtr = 0;
         }
     });
 
-    // Detects if the process has changed
+    // Set emulator base pointer and product pointer
     vars.UpdateProcess = (Action) (() => {
-        // Update process name if application has changed
-        if (vars.gameProcess != game.ProcessName)
-        {
-            vars.gameProcess = game.ProcessName;
-
-            // Set emulator edianess
-            switch ((string)vars.gameProcess.ToLower())
-            {
-                case "dolphin":
-                    vars.isBigEndian = true;
-                    break;
-
-                case "pcsx2":
-                    vars.isBigEndian = false;
-                    break;
-
-                default: // rpcs3
-                    vars.isBigEndian = true;
-                    break;
-            }
-        }
-    });
-
-    // Set emulator base pointer
-    vars.UpdatePointer = (Action) (() => {
-        switch ((string)vars.gameProcess.ToLower())
+        switch ((string)game.ProcessName.ToLower())
         {
             case "dolphin":
                 try
@@ -409,14 +406,43 @@ init
                 {
                     basePointer = IntPtr.Zero;
                 }
+
+                productPointer = basePointer;
+                vars.isBigEndian = true;
+
+                print("dolphin base pointer: " + productPointer.ToString("X8"));
+                print("dolphin product pointer: " + productPointer.ToString("X8"));
                 break;
 
-            case "pcsx2":
+            case "pcsx2": // TODO: Add PCSX2 1.7+ support
                 basePointer = new IntPtr(0x20000000);
+                productPointer = IntPtr.Add(basePointer, 0x00015B90);
+                vars.isBigEndian = false;
+                
+                print("pcsx2 basePointer: " + productPointer.ToString("X8"));
+                print("pcsx2 productPointer: " + productPointer.ToString("X8"));
                 break;
 
-            default: // rpcs3
+            case "rpcs3":
                 basePointer = new IntPtr(0x300000000);
+
+                SigScanTarget target = new SigScanTarget(-0xE0, "50 53 33 5F 47 41 4D 45 00 00 00 00 00 00 00 00 08 00 00 00 00 00 00 00 0F 00 00 00 00 00 00 00 30 30");
+                SignatureScanner scanner = new SignatureScanner(game, game.MainModule.BaseAddress, (int)game.MainModule.ModuleMemorySize);
+                
+                productPointer = scanner.Scan(target);
+                vars.isBigEndian = true;
+                
+                print("rpcs3 basePointer: " + productPointer.ToString("X8"));
+                print("rpcs3 productPointer: " + productPointer.ToString("X8"));
+                break;
+
+            default:
+                basePointer = IntPtr.Zero;
+                productPointer = IntPtr.Zero;
+                vars.isBigEndian = false;
+                
+                print("default basePointer: " + productPointer.ToString("X8"));
+                print("default productPointer: " + productPointer.ToString("X8"));
                 break;
         }
     });
@@ -425,35 +451,45 @@ init
     vars.UpdateProduct = (Action) (() => {
         string productCode = String.Empty;
 
-        // Read game product code from memory
-        switch ((string)vars.gameProcess.ToLower())
+        // Update the emulator base pointers if the product pointer is 0
+        if (productPointer == IntPtr.Zero) 
+        {
+            vars.UpdateProcess();
+        }
+        else
+        {
+            productCode = vars.ReadProduct(productPointer);
+
+            // Update product code and memory pointers if the game release has changed
+            if (vars.productCode != productCode)
+            {
+                // Update the base emulator pointers
+                vars.UpdateProcess();
+
+                // Re-read product code since productPointer will be different if the emulator changed
+                vars.productCode = vars.ReadProduct(productPointer);
+
+                if (!String.IsNullOrEmpty(vars.productCode))
+                    print("productCode: " + vars.productCode.ToString());
+
+                // Update game memory pointers
+                vars.UpdatePointers();
+            }
+        }
+    });
+
+    // Read game release product code from memory
+    vars.ReadProduct = (Func<IntPtr, string>)((pointer) => {
+        switch ((string)game.ProcessName.ToLower())
         {
             case "dolphin":
-                productCode = memory.ReadString(basePointer, 6);
-                break;
-
+                return memory.ReadString(pointer, 6);
             case "pcsx2":
-                productCode = memory.ReadString(IntPtr.Add(basePointer, 0x00015B90), 11);
-                break;
-
-            default: // rpcs3
-                IntPtr pointer = IntPtr.Zero;
-                
-                SigScanTarget target = new SigScanTarget(-0xE0, "50 53 33 5F 47 41 4D 45 00 00 00 00 00 00 00 00 08 00 00 00 00 00 00 00 0F 00 00 00 00 00 00 00 30 30");
-                SignatureScanner scanner = new SignatureScanner(game, game.MainModule.BaseAddress, (int)game.MainModule.ModuleMemorySize);
-                
-                if((pointer = scanner.Scan(target)) == IntPtr.Zero)
-                    break;
-                
-                productCode = (pointer != IntPtr.Zero) ? memory.ReadString(pointer, 9) : String.Empty;
-                break;
-        }
-
-        // Update product code if the game release has changed
-        if (vars.productCode != productCode)
-        {
-            vars.productCode = productCode;
-            vars.UpdatePointers();
+                return memory.ReadString(pointer, 11);
+            case "rpcs3":
+                return memory.ReadString(pointer, 9);
+            default:
+                return String.Empty;
         }
     });
 
@@ -529,8 +565,6 @@ init
     });
 
     // Initialise values
-    vars.UpdateProcess();
-    vars.UpdatePointer();
     vars.UpdateProduct();
     vars.UpdateValues();
 }
@@ -543,8 +577,6 @@ start
 
 update
 {
-    vars.UpdateProcess();
-    vars.UpdatePointer();
     vars.UpdateProduct();
     vars.UpdateValues();
 

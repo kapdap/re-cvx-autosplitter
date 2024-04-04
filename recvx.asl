@@ -1,6 +1,15 @@
-// Resident Evil/Biohazard: Code: Veronica Auto Splitter
-// By Kapdap 2023/05/06
-// https://github.com/kapdap/re-cvx-autosplitter
+// SPDX-FileCopyrightText: 2024 Kapdap <kapdap@pm.me>
+//
+// SPDX-License-Identifier: MIT
+/*  Resident Evil/Biohazard: Code: Veronica Auto Splitter
+ *  https://github.com/kapdap/re-cvx-autosplitter
+ *
+ *  Copyright 2024 Kapdap <kapdap@pm.me>
+ *
+ *  Use of this source code is governed by an MIT-style
+ *  license that can be found in the LICENSE file or at
+ *  https://opensource.org/licenses/MIT.
+ */
 
 state("rpcs3") {}
 state("pcsx2") {}
@@ -217,7 +226,7 @@ startup
     settings.Add("infogroup", false, "Info");
     settings.Add("infogroup1", false, "Resident Evil: Code: Veronica Auto Splitter by Kapdap", "infogroup");
     settings.Add("infogroup2", false, "Website: https://github.com/kapdap/re-cvx-autosplitter", "infogroup");
-    settings.Add("infogroup3", false, "Last Update: 2023-05-06T20:00:00+1200", "infogroup");
+    settings.Add("infogroup3", false, "Last Update: 2024-04-04T15:30:00+1200", "infogroup");
 }
 
 init
@@ -229,9 +238,10 @@ init
     IntPtr basePointer = IntPtr.Zero; // Emulator virtual memory base pointer
     IntPtr productPointer = IntPtr.Zero; // Product code memory pointer
 
+    // Supported game release product codes and associated memory pointers
     vars.productPointers = new Dictionary<string, Dictionary<string, int>>();
     vars.productPointers.Add("GCDJ08", new Dictionary<string, int>
-    {
+    { // [GCN] [JP] Biohazard: Code: Veronica Kanzenban
         { "timePtr", 0x00438B9C },
         { "roomPtr", 0x00438BB0 },
         { "screenPtr", 0x00438349 },
@@ -241,7 +251,7 @@ init
         { "inventoryPtr", 0x0043856C }
     });
     vars.productPointers.Add("GCDE08", new Dictionary<string, int>
-    {
+    { // [GCN] [US] Resident Evil: Code: Veronica X
         { "timePtr", 0x004345BC },
         { "roomPtr", 0x004345D0 },
         { "screenPtr", 0x00433D69 },
@@ -251,7 +261,7 @@ init
         { "inventoryPtr", 0x00433F8C }
     });
     vars.productPointers.Add("GCDP08", new Dictionary<string, int>
-    {
+    { // [GCN] [EU] Resident Evil: Code: Veronica X
         { "timePtr", 0x00438B5C },
         { "roomPtr", 0x00438B70 },
         { "screenPtr", 0x00438309 },
@@ -261,7 +271,7 @@ init
         { "inventoryPtr", 0x0043852C }
     });
     vars.productPointers.Add("SLPM_650.22", new Dictionary<string, int>
-    {
+    { // [PS2] [JP] Biohazard: Code: Veronica Kanzenban
         { "timePtr", 0x004314A0 },
         { "roomPtr", 0x004314B4 },
         { "screenPtr", 0x00430C4C },
@@ -271,7 +281,7 @@ init
         { "inventoryPtr", 0x00430E70 }
     });
     vars.productPointers.Add("SLUS_201.84", new Dictionary<string, int>
-    {
+    { // [PS2] [US] Resident Evil: Code: Veronica X
         { "timePtr", 0x004339A0 },
         { "roomPtr", 0x004339B4 },
         { "screenPtr", 0x0043314C },
@@ -281,7 +291,7 @@ init
         { "inventoryPtr", 0x00433370 }
     });
     vars.productPointers.Add("SLES_503.06", new Dictionary<string, int>
-    {
+    { // [PS2] [EU] Resident Evil: Code: Veronica X
         { "timePtr", 0x0044A1D0 },
         { "roomPtr", 0x0044A1E4 },
         { "screenPtr", 0x0044997C },
@@ -291,7 +301,7 @@ init
         { "inventoryPtr", 0x00449BA0 }
     });
     vars.productPointers.Add("NPUB30467", new Dictionary<string, int>
-    {
+    { // [PS3] [US] Resident Evil Code: Veronica X HD
         { "timePtr", 0x00BB3DB8 },
         { "roomPtr", 0x00BB3DCC },
         { "screenPtr", 0x00BB3565 },
@@ -301,7 +311,7 @@ init
         { "inventoryPtr", 0x00BB3788 }
     });
     vars.productPointers.Add("NPEB00553", new Dictionary<string, int>
-    {
+    { // [PS3] [EU] Resident Evil Code: Veronica X
         { "timePtr", 0x00BC40B8 },
         { "roomPtr", 0x00BC40CC },
         { "screenPtr", 0x00BC3865 },
@@ -311,7 +321,7 @@ init
         { "inventoryPtr", 0x00BC3A88 }
     });
     vars.productPointers.Add("NPJB00135", new Dictionary<string, int>
-    {
+    { // NPJB00135 - [PS3] [JP] Biohazard Code: Veronica Kanzenban
         { "timePtr", 0x00BB3E38 },
         { "roomPtr", 0x00BB3E4C },
         { "screenPtr", 0x00BB35E5 },
@@ -457,6 +467,7 @@ init
         }
         else
         {
+            // Read the product code
             productCode = vars.ReadProduct(productPointer);
 
             // Update product code and memory pointers if the game release has changed
@@ -469,7 +480,7 @@ init
                 vars.productCode = vars.ReadProduct(productPointer);
 
                 if (!String.IsNullOrEmpty(vars.productCode))
-                    print("productCode: " + vars.productCode.ToString());
+                    print("productCode: " + vars.productCode);
 
                 // Update game memory pointers
                 vars.UpdatePointers();

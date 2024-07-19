@@ -8,7 +8,7 @@ compare against in game time. Additionaly, character health, poison status and
 equipped weapon ammo can be displayed in LiveSplit with the
 [ASL Var Viewer](https://github.com/hawkerm/LiveSplit.ASLVarViewer) component.
 
-*Last Update: 2024-04-04T23:00:00+1200*
+*Last Update: 2024-07-20T01:30:00+1200*
 
 ## Extras
 

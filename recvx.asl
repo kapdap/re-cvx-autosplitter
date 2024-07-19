@@ -13,6 +13,7 @@
 
 state("rpcs3") {}
 state("pcsx2") {}
+state("pcsx2-qtx64") {}
 state("dolphin") {}
 
 startup
@@ -423,22 +424,42 @@ init
                 print("dolphin productPointer: " + productPointer.ToString("X8"));
                 break;
 
-            case "pcsx2": // TODO: Add PCSX2 1.7+ support
+            case "pcsx2": // PCSX2 1.6
                 basePointer = new IntPtr(0x20000000);
                 productPointer = IntPtr.Add(basePointer, 0x00015B90);
+
                 vars.isBigEndian = false;
                 
                 print("pcsx2 basePointer: " + basePointer.ToString("X8"));
                 print("pcsx2 productPointer: " + productPointer.ToString("X8"));
                 break;
 
-            case "rpcs3":
-                basePointer = new IntPtr(0x300000000);
+            case "pcsx2-qtx64": // PCSX2 1.7+
+                IntPtr baseAddress = game.MainModule.BaseAddress;
 
-                SigScanTarget target = new SigScanTarget(-0xE0, "50 53 33 5F 47 41 4D 45 00 00 00 00 00 00 00 00 08 00 00 00 00 00 00 00 0F 00 00 00 00 00 00 00 30 30");
+                // Get pointer to EEmem function from PE header
+                int directory = memory.ReadValue<int>(IntPtr.Add(baseAddress, 0x100));
+                int functions = memory.ReadValue<int>(IntPtr.Add(baseAddress, directory + 0x1C));
+
+                // TODO: Locate function by name instead of index
+                int eemem = memory.ReadValue<int>(IntPtr.Add(baseAddress, functions + 0x04));
+
+                basePointer = (IntPtr)(memory.ReadValue<long>(IntPtr.Add(baseAddress, eemem)));
+                productPointer = IntPtr.Add(basePointer, 0x00012610);
+
+                vars.isBigEndian = false;
+                 
+                print("pcsx2-qtx64 basePointer: " + basePointer.ToString("X16"));
+                print("pcsx2-qtx64 productPointer: " + productPointer.ToString("X16"));
+                break;
+
+            case "rpcs3":
                 SignatureScanner scanner = new SignatureScanner(game, game.MainModule.BaseAddress, (int)game.MainModule.ModuleMemorySize);
+                SigScanTarget target = new SigScanTarget(-0xE0, "50 53 33 5F 47 41 4D 45 00 00 00 00 00 00 00 00 08 00 00 00 00 00 00 00 0F 00 00 00 00 00 00 00 30 30");;
                 
+                basePointer = new IntPtr(0x300000000);
                 productPointer = scanner.Scan(target);
+
                 vars.isBigEndian = true;
                 
                 print("rpcs3 basePointer: " + basePointer.ToString("X16"));
@@ -448,6 +469,7 @@ init
             default:
                 basePointer = IntPtr.Zero;
                 productPointer = IntPtr.Zero;
+
                 vars.isBigEndian = false;
                 
                 print("default basePointer: " + basePointer.ToString("X8"));
@@ -495,6 +517,7 @@ init
             case "dolphin":
                 return memory.ReadString(pointer, 6);
             case "pcsx2":
+            case "pcsx2-qtx64":
                 return memory.ReadString(pointer, 11);
             case "rpcs3":
                 return memory.ReadString(pointer, 9);

@@ -71,6 +71,13 @@ startup
             ((value & 0xff000000) >> 24);
     });
 
+	// Checks if a specific bit in a byte is set
+	vars.BitCheck = new Func<byte, int, bool>((byte val, int b) => (val & (1 << b)) != 0);
+
+	settings.Add("time", true, "Timing Methods");
+	settings.Add("LRT", false, "Load Remover Time", "time");
+    settings.SetToolTip("LRT", "Removes door load time");
+
     settings.Add("events", true, "Events");
     vars.AddSplit("tyrantPlane", false, "Tyrant Plane Fight", "events");
     settings.SetToolTip("tyrantPlane", "Splits when Claire opens the door to the cargo hold");
@@ -223,11 +230,16 @@ startup
     settings.Add("debugSplits", false, "Debug Splits", "optionsGroup");
     settings.SetToolTip("debugSplits", "Use DbgView application to view split log");
 
+    // Contributors list
+    settings.Add("contributors", false, "Contributors");
+    settings.Add("contributors1", false, "TheDementedSalad (https://www.twitch.tv/thedementedsalad)", "contributors");
+    settings.SetToolTip("contributors1", "Added support for load remover time");
+
     // Application information
     settings.Add("infogroup", false, "Info");
     settings.Add("infogroup1", false, "Resident Evil: Code: Veronica Auto Splitter by Kapdap", "infogroup");
     settings.Add("infogroup2", false, "Website: https://github.com/kapdap/re-cvx-autosplitter", "infogroup");
-    settings.Add("infogroup3", false, "Last Update: 2024-07-20T01:30:00+1200", "infogroup");
+    settings.Add("infogroup3", false, "Last Update: 2024-07-30T19:00:00+1200", "infogroup");
 }
 
 init
@@ -248,6 +260,7 @@ init
         { "screenPtr", 0x00438349 },
         { "healthPtr", 0x004378FC },
         { "statusPtr", 0x00437579 },
+		{ "doorFlagPtr", 0x00438363 },
         { "characterPtr", 0x00438380 },
         { "inventoryPtr", 0x0043856C }
     });
@@ -258,6 +271,7 @@ init
         { "screenPtr", 0x00433D69 },
         { "healthPtr", 0x0043331C },
         { "statusPtr", 0x00432F99 },
+		{ "doorFlagPtr", 0x00433D83 },
         { "characterPtr", 0x00433DA0 },
         { "inventoryPtr", 0x00433F8C }
     });
@@ -268,6 +282,7 @@ init
         { "screenPtr", 0x00438309 },
         { "healthPtr", 0x004378BC },
         { "statusPtr", 0x00437539 },
+		{ "doorFlagPtr", 0x00438323 },
         { "characterPtr", 0x00438340 },
         { "inventoryPtr", 0x0043852C }
     });
@@ -278,6 +293,7 @@ init
         { "screenPtr", 0x00430C4C },
         { "healthPtr", 0x004301FC },
         { "statusPtr", 0x0042FE6A },
+		{ "doorFlagPtr", 0x00430C64 },
         { "characterPtr", 0x00430C84 },
         { "inventoryPtr", 0x00430E70 }
     });
@@ -288,6 +304,7 @@ init
         { "screenPtr", 0x0043314C },
         { "healthPtr", 0x004326FC },
         { "statusPtr", 0x0043236A },
+		{ "doorFlagPtr", 0x00433164 },
         { "characterPtr", 0x00433184 },
         { "inventoryPtr", 0x00433370 }
     });
@@ -298,6 +315,7 @@ init
         { "screenPtr", 0x0044997C },
         { "healthPtr", 0x00448F2C },
         { "statusPtr", 0x00448B9A },
+		{ "doorFlagPtr", 0x00449994 },
         { "characterPtr", 0x004499B4 },
         { "inventoryPtr", 0x00449BA0 }
     });
@@ -308,6 +326,7 @@ init
         { "screenPtr", 0x00BB3565 },
         { "healthPtr", 0x00BDEA1C },
         { "statusPtr", 0x00BDE689 },
+		{ "doorFlagPtr", 0x00BB357F },
         { "characterPtr", 0x00BB359C },
         { "inventoryPtr", 0x00BB3788 }
     });
@@ -318,6 +337,7 @@ init
         { "screenPtr", 0x00BC3865 },
         { "healthPtr", 0x00BEED1C },
         { "statusPtr", 0x00BEE989 },
+		{ "doorFlagPtr", 0x00BC387F },
         { "characterPtr", 0x00BC389C },
         { "inventoryPtr", 0x00BC3A88 }
     });
@@ -328,6 +348,7 @@ init
         { "screenPtr", 0x00BB35E5 },
         { "healthPtr", 0x00BDEA9C },
         { "statusPtr", 0x00BDE709 },
+		{ "doorFlagPtr", 0x00BB35FF },
         { "characterPtr", 0x00BB361C },
         { "inventoryPtr", 0x00BB3808 }
     });
@@ -339,6 +360,7 @@ init
     int statusPtr = 0;
     int characterPtr = 0;
     int inventoryPtr = 0;
+	int doorFlagPtr = 0;
 
     // Log splits
     vars.LogSplit = (Action<string>)((text) => {
@@ -389,6 +411,7 @@ init
             statusPtr = vars.productPointers[product]["statusPtr"];
             characterPtr = vars.productPointers[product]["characterPtr"];
             inventoryPtr = vars.productPointers[product]["inventoryPtr"];
+			doorFlagPtr = vars.productPointers[product]["doorFlagPtr"];
         }
         else
         {
@@ -399,6 +422,7 @@ init
             statusPtr = 0;
             characterPtr = 0;
             inventoryPtr = 0;
+			doorFlagPtr = 0;
         }
     });
 
@@ -420,8 +444,12 @@ init
                 productPointer = basePointer;
                 vars.isBigEndian = true;
 
-                print("dolphin basePointer: " + basePointer.ToString("X8"));
-                print("dolphin productPointer: " + productPointer.ToString("X8"));
+                // Prevent debugger spam
+                if (basePointer != IntPtr.Zero)
+                {
+                    print("dolphin basePointer: " + basePointer.ToString("X8"));
+                    print("dolphin productPointer: " + productPointer.ToString("X8"));
+                }
                 break;
 
             case "pcsx2": // PCSX2 1.6
@@ -534,6 +562,7 @@ init
         uint health = 0; // Character health
         byte status = 0; // Character status info
         byte character = 0; // Character ID (0 Claire, 1 Chris, 2 Steve, 3 Wesker)
+		byte door = 0; // Current status of door for load remover time
 
         // Read values from memory
         memory.ReadValue<uint>(IntPtr.Add(basePointer, timePtr), out time);
@@ -542,6 +571,7 @@ init
         memory.ReadValue<uint>(IntPtr.Add(basePointer, healthPtr), out health);
         memory.ReadValue<byte>(IntPtr.Add(basePointer, statusPtr), out status);
         memory.ReadValue<byte>(IntPtr.Add(basePointer, characterPtr), out character);
+		memory.ReadValue<byte>(IntPtr.Add(basePointer, doorFlagPtr), out door);
 
         current.slot = 0; // Inventory slot number of the equipped item
         current.ammo = 0; // Ammo count for the equipped weapon
@@ -552,6 +582,7 @@ init
         current.status = "Normal";
         current.character = character;
         current.inventory = new byte[11]; // Current characters inventory
+		current.door = door;
 
         // Check status for gassed or poison flags
         if ((status & 0x20) != 0)
@@ -707,11 +738,12 @@ split
 
 gameTime
 {
-    // Seconds = IGT / 60
-    return TimeSpan.FromSeconds(current.time / 60.0);
+	if (!settings["LRT"])
+        // Seconds = IGT / 60
+		return TimeSpan.FromSeconds(current.time / 60.0);
 }
 
 isLoading
 {
-    return true;
+	return settings["LRT"] ? vars.BitCheck(current.door, 0) : true;
 }

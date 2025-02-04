@@ -1,10 +1,10 @@
-// SPDX-FileCopyrightText: 2024 Kapdap <kapdap@pm.me>
+// SPDX-FileCopyrightText: 2025 Kapdap <kapdap@pm.me>
 //
 // SPDX-License-Identifier: MIT
 /*  Resident Evil/Biohazard: Code: Veronica Auto Splitter
  *  https://github.com/kapdap/re-cvx-autosplitter
  *
- *  Copyright 2024 Kapdap <kapdap@pm.me>
+ *  Copyright 2025 Kapdap <kapdap@pm.me>
  *
  *  Use of this source code is governed by an MIT-style
  *  license that can be found in the LICENSE file or at
@@ -28,6 +28,18 @@ startup
     vars.itemSplits = new Dictionary<byte, bool>();
     vars.itemIndex = new Dictionary<byte, string>();
 
+    // Killed split tracker
+    vars.killedSplits = new Dictionary<short, bool>();
+    vars.killedIndex = new Dictionary<short, string>();
+    vars.killedMap = new Dictionary<int, short>();
+    vars.killedItr = 0;
+
+    // Events split tracker
+    vars.eventsSplits = new Dictionary<short, bool>();
+    vars.eventsIndex = new Dictionary<short, string>();
+    vars.eventsMap = new Dictionary<int, short>();
+    vars.eventsItr = 0;
+
     // Adds a split
     vars.AddSplit = (Action<string, bool, string, string>)((id, default_value, description, parent) => {
         vars.splits.Add(id, false);
@@ -37,7 +49,23 @@ startup
     // Adds an inventory split
     vars.AddItemSplit = (Action<byte, string, bool, string, string>)((code, id, default_value, description, parent) => {
         vars.itemSplits.Add(code, false);
-        vars.itemIndex.Add(code, id);  // Map item code to split name
+        vars.itemIndex.Add(code, id); // Map item code to split name
+        settings.Add(id, default_value, description, parent);
+    });
+
+    // Adds a killed split
+    vars.AddKilledSplit = (Action<short, string, bool, string, string>)((code, id, default_value, description, parent) => {
+        vars.killedSplits.Add(code, false);
+        vars.killedIndex.Add(code, id);
+        vars.killedMap.Add(vars.killedItr++, code);
+        settings.Add(id, default_value, description, parent);
+    });
+
+    // Adds an event split
+    vars.AddEventsSplit = (Action<short, string, bool, string, string>)((code, id, default_value, description, parent) => {
+        vars.eventsSplits.Add(code, false);
+        vars.eventsIndex.Add(code, id);
+        vars.eventsMap.Add(vars.eventsItr++, code);
         settings.Add(id, default_value, description, parent);
     });
 
@@ -48,11 +76,30 @@ startup
             vars.splits[key] = false;
     });
 
+    // Resets door split tracker
+    vars.ResetDoorSplits = (Action) (() => {
+        vars.doorsIndex = 0;
+    });
+
     // Resets inventory split tracker
     vars.ResetItemSplits = (Action) (() => {
         List<byte> keys = new List<byte>(vars.itemSplits.Keys);
         foreach(byte key in keys)
             vars.itemSplits[key] = false;
+    });
+
+    // Resets killed split tracker
+    vars.ResetKilledSplits = (Action) (() => {
+        List<short> keys = new List<short>(vars.killedSplits.Keys);
+        foreach(short key in keys)
+            vars.killedSplits[key] = false;
+    });
+
+    // Resets events split tracker
+    vars.ResetEventsSplits = (Action) (() => {
+        List<short> keys = new List<short>(vars.eventsSplits.Keys);
+        foreach(short key in keys)
+            vars.eventsSplits[key] = false;
     });
 
     // Swaps 2 byte values
@@ -71,24 +118,55 @@ startup
             ((value & 0xff000000) >> 24);
     });
 
-    // Checks if a specific bit in a byte is set
+    // Checks if a specific bit in value is set
     vars.BitCheck = new Func<byte, int, bool>((byte val, int b) => (val & (1 << b)) != 0);
 
     settings.Add("time", true, "Timing Methods");
     settings.Add("LRT", false, "Load Remover Time", "time");
     settings.SetToolTip("LRT", "Removes door load time");
 
-    settings.Add("events", true, "Events");
-    vars.AddSplit("tyrantPlane", false, "Tyrant Plane Fight", "events");
-    settings.SetToolTip("tyrantPlane", "Splits when Claire opens the door to the cargo hold");
-    vars.AddSplit("antarcticaBase", false, "Antartic Transport Terminal", "events");
-    settings.SetToolTip("antarcticaBase", "Splits during the cutscene when the plane crashes into the Antartic Transport Terminal");
-    vars.AddSplit("nosferatuFight", false, "Nosferatu Fight", "events");
-    settings.SetToolTip("nosferatuFight", "Splits during the cutscene when Claire and Steve arrive at the helipad");
-    vars.AddSplit("startChris", false, "Start as Chris", "events");
-    settings.SetToolTip("startChris", "Splits during cutscene when Chris arrives at Rockfort Island");
-    vars.AddSplit("endGame", true, "End Game", "events");
-    settings.SetToolTip("endGame", "Splits when the game rank screen displays");
+    settings.Add("doorSplits", true, "Doors (Only enable 1 option)");
+    settings.SetToolTip("doorSplits", "Enables door splits for the selected route");
+    settings.Add("anySplits", false, "any% (336 splits)", "doorSplits");
+    settings.Add("anySplitsDS", false, "any% (Doorskip) (338 splits)", "doorSplits");
+    settings.Add("rocketSplits", false, "Rocket Launcher (334 splits)", "doorSplits");
+    settings.Add("rocketSplitsDS", false, "Rocket Launcher (Doorskip) (336 splits)", "doorSplits");
+    settings.Add("knifeSplits", false, "Knife Only (336 splits)", "doorSplits");
+    settings.Add("knifeSplitsDS", false, "Knife Only (Doorskip) (338 splits)", "doorSplits");
+    settings.Add("srankSplits", false, "S-Rank (344 splits)", "doorSplits");
+    settings.Add("srankSplitsDS", false, "S-Rank (Glitchless) (Doorskip) (346 splits)", "doorSplits");
+    settings.Add("srankSplitsDSGL", false, "S-Rank (Glitched) (Doorskip) (348 splits)", "doorSplits");
+    settings.Add("basicSplits", false, "Basic (All doors)", "doorSplits");
+    settings.SetToolTip("basicSplits", "Splits on every door transition");
+
+    settings.Add("bosses", true, "Bosses");
+    vars.AddEventsSplit(215, "bandersnatchSpawned", false, "Bandersnatch (Spawned)", "bosses");
+    vars.AddKilledSplit(133, "bandersnatchKilled", false, "Bandersnatch (Killed)", "bosses");
+    vars.AddEventsSplit(129, "drZombieSpawned", false, "Dr. Zombie (Spawned)", "bosses");
+    vars.AddKilledSplit(35, "drZombieKilled", false, "Dr. Zombie (Killed)", "bosses");
+    vars.AddEventsSplit(169, "tyrant1Spawned", false, "Palace Tyrant (Spawned)", "bosses");
+    vars.AddKilledSplit(89, "tyrant1Killed", false, "Palace Tyrant (Killed)", "bosses");
+    vars.AddEventsSplit(269, "tyrant2Spawned", false, "Plane Tyrant (Spawned)", "bosses");
+    vars.AddKilledSplit(185, "tyrant2Killed", false, "Plane Tyrant (Killed)", "bosses");
+    vars.AddEventsSplit(305, "nosferatuSpawned", false, "Nosferatu (Spawned)", "bosses");
+    vars.AddKilledSplit(205, "nosferatuKilled", false, "Nosferatu (Killed)", "bosses");
+    vars.AddKilledSplit(248, "gulpWormKilled", false, "Tomb Gulp Worm (Killed)", "bosses");
+    vars.AddEventsSplit(346, "albinoidSpawned", false, "Albinoid (Spawned)", "bosses");
+    vars.AddKilledSplit(221, "albinoidKilled", false, "Albinoid (Killed)", "bosses");
+    vars.AddKilledSplit(357, "alexia1Killed", false, "Alexia 1 (Killed)", "bosses");
+    vars.AddSplit("alexia2Spawned", false, "Alexia 2 (Spawned)", "bosses");
+    vars.AddKilledSplit(348, "alexia2Killed", false, "Alexia 2 (Killed)", "bosses");
+    vars.AddKilledSplit(349, "alexia3Killed", false, "Alexia 3 (Killed)", "bosses");
+
+    settings.Add("eventsNew", true, "Events");
+    vars.AddEventsSplit(95, "partTwoEvent", false, "Antartic Transport Terminal", "eventsNew");
+    settings.SetToolTip("partTwoEvent", "Splits at the start of part two");
+    vars.AddEventsSplit(304, "helipadEvent", false, "Antartic Helipad", "eventsNew");
+    settings.SetToolTip("helipadEvent", "Splits when Claire and Steve arrive at the helipad");
+    vars.AddEventsSplit(366, "chrisEvent", false, "Start as Chris", "eventsNew");
+    settings.SetToolTip("chrisEvent", "Splits when taking control of Chris on Rockfort Island");
+    vars.AddSplit("endGame", true, "End Game", "eventsNew");
+    settings.SetToolTip("endGame", "Splits when the game rank screen is displayed");
 
     settings.Add("weapongroup", true, "Weapons");
     vars.AddSplit("combatKnife", false, "Combat Knife", "weapongroup");
@@ -223,6 +301,17 @@ startup
     vars.AddItemSplit(0x03, "sniperRifle", false, "Sniper Rifle", "otherweapongroup");
     vars.AddSplit("subMachineGunChris", false, "Sub Machine Gun (Chris)", "otherweapongroup");
 
+    settings.Add("events", true, "Events (Old)");
+    settings.SetToolTip("events", "Disable door splits to enable legacy event splits");
+    vars.AddSplit("tyrantPlane", false, "Tyrant Plane Fight", "events");
+    settings.SetToolTip("tyrantPlane", "Splits when Claire opens the door to the cargo hold");
+    vars.AddSplit("antarcticaBase", false, "Antartic Transport Terminal", "events");
+    settings.SetToolTip("antarcticaBase", "Splits during the cutscene when the plane crashes into the Antartic Transport Terminal");
+    vars.AddSplit("nosferatuFight", false, "Nosferatu Fight", "events");
+    settings.SetToolTip("nosferatuFight", "Splits during the cutscene when Claire and Steve arrive at the helipad");
+    vars.AddSplit("startChris", false, "Start as Chris", "events");
+    settings.SetToolTip("startChris", "Splits during cutscene when Chris arrives at Rockfort Island");
+
     // Splitter Options
     settings.Add("optionsGroup", false, "Options");
     settings.Add("logSplits", false, "Log Splits", "optionsGroup");
@@ -234,22 +323,49 @@ startup
     settings.Add("contributors", false, "Contributors");
     settings.Add("contributors1", false, "TheDementedSalad (https://www.twitch.tv/thedementedsalad)", "contributors");
     settings.SetToolTip("contributors1", "Added support for load remover time");
+    settings.Add("contributors2", false, "redshines (https://www.twitch.tv/redshines)", "contributors");
+    settings.SetToolTip("contributors2", "Door split routes and testing");
 
     // Application information
     settings.Add("infogroup", false, "Info");
     settings.Add("infogroup1", false, "Resident Evil: Code: Veronica Auto Splitter by Kapdap", "infogroup");
     settings.Add("infogroup2", false, "Website: https://github.com/kapdap/re-cvx-autosplitter", "infogroup");
-    settings.Add("infogroup3", false, "Last Update: 2024-07-30T19:00:00+1200", "infogroup");
+    settings.Add("infogroup3", false, "Last Update: 2025-02-09T13:00:00+1200", "infogroup");
 }
 
 init
 {
+    IntPtr basePointer = IntPtr.Zero; // Emulator virtual memory base pointer
+    IntPtr productPointer = IntPtr.Zero; // Product code memory pointer
+
+    IntPtr timePtr = IntPtr.Zero;
+    IntPtr roomPtr = IntPtr.Zero;
+    IntPtr screenPtr = IntPtr.Zero;
+    IntPtr healthPtr = IntPtr.Zero;
+    IntPtr statusPtr = IntPtr.Zero;
+    IntPtr characterPtr = IntPtr.Zero;
+    IntPtr inventoryPtr = IntPtr.Zero;
+    IntPtr doorFlagPtr = IntPtr.Zero;
+    IntPtr enemyPtr = IntPtr.Zero;
+    IntPtr killedPtr = IntPtr.Zero;
+    IntPtr eventsPtr = IntPtr.Zero;
+
     vars.lastSplit = String.Empty; // Name of the most recent split
     vars.productCode = String.Empty; // Used to detect when the game release has changed
     vars.isBigEndian = false; // Console uses big endian (e.g. PS3 and GCN)
-
-    IntPtr basePointer = IntPtr.Zero; // Emulator virtual memory base pointer
-    IntPtr productPointer = IntPtr.Zero; // Product code memory pointer
+    vars.console = String.Empty; // Console code (PS3, PS2, GCN)
+    vars.doorsIndex = 0; // Current door split index
+    vars.doorsEnabled = // Door splits enabled
+        settings["basicSplits"]    ||
+        settings["anySplits"]      ||
+        settings["anySplitsDS"]    ||
+        settings["rocketSplits"]   ||
+        settings["rocketSplitsDS"] ||
+        settings["knifeSplits"]    ||
+        settings["knifeSplitsDS"]  ||
+        settings["srankSplits"]    ||
+        settings["srankSplitsDS"]  ||
+        settings["srankSplitsDSGL"];
 
     // Supported game release product codes and associated memory pointers
     vars.productPointers = new Dictionary<string, Dictionary<string, int>>();
@@ -262,7 +378,10 @@ init
         { "statusPtr", 0x00437579 },
         { "doorFlagPtr", 0x00438363 },
         { "characterPtr", 0x00438380 },
-        { "inventoryPtr", 0x0043856C }
+        { "inventoryPtr", 0x0043856C },
+        { "enemyPtr", 0x0041C1F0 },
+        { "killedPtr", 0x0043848C },
+        { "eventsPtr", 0x0043838C }
     });
     vars.productPointers.Add("GCDE08", new Dictionary<string, int>
     { // [GCN] [US] Resident Evil: Code: Veronica X
@@ -273,7 +392,10 @@ init
         { "statusPtr", 0x00432F99 },
         { "doorFlagPtr", 0x00433D83 },
         { "characterPtr", 0x00433DA0 },
-        { "inventoryPtr", 0x00433F8C }
+        { "inventoryPtr", 0x00433F8C },
+        { "enemyPtr", 0x00417C10 },
+        { "killedPtr", 0x00433EAC },
+        { "eventsPtr", 0x00433DAC }
     });
     vars.productPointers.Add("GCDP08", new Dictionary<string, int>
     { // [GCN] [EU] Resident Evil: Code: Veronica X
@@ -284,7 +406,10 @@ init
         { "statusPtr", 0x00437539 },
         { "doorFlagPtr", 0x00438323 },
         { "characterPtr", 0x00438340 },
-        { "inventoryPtr", 0x0043852C }
+        { "inventoryPtr", 0x0043852C },
+        { "enemyPtr", 0x0041C1B0 },
+        { "killedPtr", 0x0043844C },
+        { "eventsPtr", 0x0043834C }
     });
     vars.productPointers.Add("SLPM_650.22", new Dictionary<string, int>
     { // [PS2] [JP] Biohazard: Code: Veronica Kanzenban
@@ -295,7 +420,10 @@ init
         { "statusPtr", 0x0042FE6A },
         { "doorFlagPtr", 0x00430C64 },
         { "characterPtr", 0x00430C84 },
-        { "inventoryPtr", 0x00430E70 }
+        { "inventoryPtr", 0x00430E70 },
+        { "enemyPtr", 0x00403DE0 },
+        { "killedPtr", 0x00430D90 },
+        { "eventsPtr", 0x00430C90 }
     });
     vars.productPointers.Add("SLUS_201.84", new Dictionary<string, int>
     { // [PS2] [US] Resident Evil: Code: Veronica X
@@ -306,7 +434,10 @@ init
         { "statusPtr", 0x0043236A },
         { "doorFlagPtr", 0x00433164 },
         { "characterPtr", 0x00433184 },
-        { "inventoryPtr", 0x00433370 }
+        { "inventoryPtr", 0x00433370 },
+        { "enemyPtr", 0x004062E0 },
+        { "killedPtr", 0x00433290 },
+        { "eventsPtr", 0x00433190 }
     });
     vars.productPointers.Add("SLES_503.06", new Dictionary<string, int>
     { // [PS2] [EU] Resident Evil: Code: Veronica X
@@ -317,7 +448,10 @@ init
         { "statusPtr", 0x00448B9A },
         { "doorFlagPtr", 0x00449994 },
         { "characterPtr", 0x004499B4 },
-        { "inventoryPtr", 0x00449BA0 }
+        { "inventoryPtr", 0x00449BA0 },
+        { "enemyPtr", 0x0041CB10 },
+        { "killedPtr", 0x00449AC0 },
+        { "eventsPtr", 0x004499C0 }
     });
     vars.productPointers.Add("NPUB30467", new Dictionary<string, int>
     { // [PS3] [US] Resident Evil Code: Veronica X HD
@@ -328,7 +462,10 @@ init
         { "statusPtr", 0x00BDE689 },
         { "doorFlagPtr", 0x00BB357F },
         { "characterPtr", 0x00BB359C },
-        { "inventoryPtr", 0x00BB3788 }
+        { "inventoryPtr", 0x00BB3788 },
+        { "enemyPtr", 0x00BDEB78 },
+        { "killedPtr", 0x00BB36A8 },
+        { "eventsPtr", 0x00BB35A8 }
     });
     vars.productPointers.Add("NPEB00553", new Dictionary<string, int>
     { // [PS3] [EU] Resident Evil Code: Veronica X
@@ -339,7 +476,10 @@ init
         { "statusPtr", 0x00BEE989 },
         { "doorFlagPtr", 0x00BC387F },
         { "characterPtr", 0x00BC389C },
-        { "inventoryPtr", 0x00BC3A88 }
+        { "inventoryPtr", 0x00BC3A88 },
+        { "enemyPtr", 0x00BEEE78 },
+        { "killedPtr", 0x00BC39A8 },
+        { "eventsPtr", 0x00BC38A8 }
     });
     vars.productPointers.Add("NPJB00135", new Dictionary<string, int>
     { // [PS3] [JP] Biohazard Code: Veronica Kanzenban
@@ -350,17 +490,380 @@ init
         { "statusPtr", 0x00BDE709 },
         { "doorFlagPtr", 0x00BB35FF },
         { "characterPtr", 0x00BB361C },
-        { "inventoryPtr", 0x00BB3808 }
+        { "inventoryPtr", 0x00BB3808 },
+        { "enemyPtr", 0x00BDEBF8 },
+        { "killedPtr", 0x00BB3728 },
+        { "eventsPtr", 0x00BB3628 }
     });
 
-    int timePtr = 0;
-    int roomPtr = 0;
-    int screenPtr = 0;
-    int healthPtr = 0;
-    int statusPtr = 0;
-    int characterPtr = 0;
-    int inventoryPtr = 0;
-    int doorFlagPtr = 0;
+    // Any% Glitched and Glitchless Non-Doorskip Non-LTR
+    vars.anySplits = new List<int>()
+    {
+        1,    2,    3,    5,    8,    9,    4,    9,    8,    5,
+        3,    2,    3,    5,    8,    9,    8,    5,    3,    10,
+        268,  256,  258,  263,  261,  263,  258,  263,  261,  263,
+        258,  256,  269,  270,  1027, 1024, 1025, 1026, 1025, 1024,
+        1027, 1029, 269,  256,  268,  777,  776,  769,  783,  778,
+        786,  785,  789,  790,  768,  771,  772,  771,  768,  770,
+        777,  776,  769,  785,  784,  785,  789,  790,  780,  782,
+        780,  769,  776,  781,  782,  781,  776,  777,  770,  768,
+        771,  772,  771,  768,  770,  777,  268,  256,  258,  263,
+        260,  263,  258,  264,  265,  266,  512,  513,  515,  517,
+        515,  513,  512,  266,  265,  264,  258,  263,  262,  263,
+        258,  256,  268,  10,   3,    5,    8,    16,   11,   12,
+        11,   13,   14,   15,   14,   13,   11,   16,   8,    5,
+        3,    10,   268,  256,  258,  267,  258,  264,  265,  266,
+        512,  513,  515,  516,  518,  519,  518,  517,  516,  515,
+        513,  512,  266,  265,  264,  258,  256,  269,  270,  1024,
+        1025, 1280, 1025, 1024, 1025, 1026, 1025, 1024, 1025, 1026,
+        1028, 791,  268,  256,  269,  270,  1027, 1024, 1025, 1280,
+        1281, 1280, 1536, 1539, 1541, 1544, 1541, 1545, 1541, 1542,
+        1543, 1542, 1541, 1545, 1541, 1539, 1540, 1539, 1536, 1541,
+        1542, 1543, 1542, 1541, 1538, 1541, 1536, 1539, 1541, 1542,
+        1546, 1814, 1815, 1804, 1792, 1800, 1792, 1804, 1795, 1793,
+        1798, 1799, 1803, 1797, 1803, 1799, 1798, 1793, 1795, 1806,
+        1810, 1809, 1804, 1809, 1810, 1806, 1795, 1793, 1811, 1794,
+        1811, 1793, 1798, 1799, 1803, 1808, 1805, 2052, 2050, 2049,
+        2048, 2049, 2050, 2049, 2048, 2049, 2048, 2049, 2050, 2052,
+        1805, 1808, 1807, 1806, 1813, 1812, 1796, 1812, 1813, 1798,
+        1793, 1811, 1794, 1817, 1802, 1817, 1794, 1811, 1793, 1798,
+        1800, 2313, 2304, 2307, 2308, 2307, 2304, 2309, 2310, 2309,
+        2314, 2317, 2316, 2318, 2316, 2320, 2321, 2322, 2321, 2320,
+        2316, 2318, 2316, 2317, 2314, 2315, 2314, 2309, 2314, 2317,
+        2319, 2330, 2331, 2333, 2332, 2336, 2324, 2325, 2324, 2336,
+        2320, 2336, 2324, 2327, 2328, 2327, 2329, 2327, 2324, 2326,
+        2331, 2333, 2334, 2335, 2334
+    };
+
+    // Any% Glitched and Glitchless Doorskip LTR
+    vars.anySplitsDS = new List<int>()
+    {
+        1,    2,    3,    5,    8,    9,    4,    9,    8,    5,
+        3,    2,    3,    5,    8,    9,    8,    5,    3,    10,
+        268,  256,  258,  263,  261,  263,  258,  263,  261,  263,
+        258,  256,  269,  270,  1027, 1024, 1025, 1026, 1025, 1024,
+        1027, 1029, 269,  256,  268,  777,  776,  769,  783,  778,
+        786,  785,  789,  790,  768,  771,  772,  771,  768,  770,
+        777,  776,  769,  785,  784,  785,  789,  790,  780,  782,
+        780,  769,  776,  781,  782,  781,  776,  777,  770,  768,
+        771,  772,  771,  768,  770,  777,  268,  256,  258,  263,
+        260,  263,  258,  264,  265,  266,  512,  513,  515,  517,
+        515,  513,  512,  266,  265,  264,  258,  263,  262,  263,
+        258,  256,  268,  10,   3,    5,    8,    16,   11,   12,
+        11,   13,   14,   15,   14,   13,   11,   16,   8,    5,
+        3,    10,   268,  256,  258,  267,  258,  264,  265,  266,
+        512,  513,  515,  516,  518,  519,  518,  517,  516,  515,
+        513,  512,  266,  265,  264,  258,  256,  269,  270,  1024,
+        1025, 1280, 1025, 1024, 1025, 1026, 1025, 1024, 1025, 1026,
+        1028, 791,  268,  256,  269,  270,  1027, 1024, 1025, 1280,
+        1281, 1280, 1536, 1539, 1541, 1544, 1541, 1545, 1541, 1542,
+        1543, 1542, 1541, 1545, 1541, 1539, 1540, 1539, 1536, 1541,
+        1542, 1543, 1542, 1541, 1538, 1541, 1536, 1539, 1541, 1542,
+        1546, 1814, 1815, 1804, 1792, 1800, 1792, 1804, 1795, 1793,
+        1798, 1799, 1803, 1797, 1803, 1799, 1798, 1793, 1795, 1806,
+        1810, 1809, 1804, 1809, 1810, 1806, 1795, 1793, 1811, 1794,
+        1811, 1793, 1798, 1799, 1803, 1808, 1805, 2052, 2050, 2049,
+        2048, 2049, 2050, 2049, 2048, 2049, 2048, 2049, 2050, 2052,
+        1805, 1808, 1807, 1806, 1813, 1812, 1796, 1812, 1813, 1798,
+        1793, 1811, 1794, 1817, 1802, 1817, 1794, 1811, 1793, 1795,
+        1804, 1792, 1800, 2313, 2304, 2307, 2308, 2307, 2304, 2309,
+        2310, 2309, 2314, 2317, 2316, 2318, 2316, 2320, 2321, 2322,
+        2321, 2320, 2316, 2318, 2316, 2317, 2314, 2315, 2314, 2309,
+        2314, 2317, 2319, 2330, 2331, 2333, 2332, 2336, 2324, 2325,
+        2324, 2336, 2320, 2336, 2324, 2327, 2328, 2327, 2329, 2327,
+        2324, 2326, 2331, 2333, 2334, 2335, 2334
+    };
+
+    // Rocket Launcher Non-Doorskip Non-LTR
+    vars.rocketSplits = new List<int>()
+    {
+        1,    2,    3,    5,    8,    9,    4,    9,    8,    5,
+        3,    2,    3,    5,    8,    9,    8,    5,    3,    10,
+        268,  256,  258,  263,  261,  263,  258,  263,  261,  263,
+        258,  256,  269,  270,  1027, 1024, 1025, 1026, 1025, 1024,
+        1027, 1029, 269,  256,  268,  777,  776,  769,  783,  778,
+        786,  785,  789,  790,  768,  771,  772,  771,  768,  770,
+        777,  776,  769,  785,  789,  790,  780,  782,  780,  769,
+        776,  781,  782,  781,  776,  777,  770,  768,  771,  772,
+        771,  768,  770,  777,  268,  256,  258,  263,  260,  263,
+        258,  264,  265,  266,  512,  513,  515,  517,  515,  513,
+        512,  266,  265,  264,  258,  263,  262,  263,  258,  256,
+        268,  10,   3,    5,    8,    16,   11,   12,   11,   13,
+        14,   15,   14,   13,   11,   16,   8,    5,    3,    10,
+        268,  256,  258,  267,  258,  264,  265,  266,  512,  513,
+        515,  516,  518,  519,  518,  517,  516,  515,  513,  512,
+        266,  265,  264,  258,  256,  269,  270,  1024, 1025, 1280,
+        1025, 1024, 1025, 1026, 1025, 1024, 1025, 1026, 1028, 791,
+        268,  256,  269,  270,  1027, 1024, 1025, 1280, 1281, 1280,
+        1536, 1539, 1541, 1544, 1541, 1545, 1541, 1542, 1543, 1542,
+        1541, 1545, 1541, 1539, 1540, 1539, 1536, 1541, 1542, 1543,
+        1542, 1541, 1538, 1541, 1536, 1539, 1541, 1542, 1546, 1814,
+        1815, 1804, 1792, 1800, 1792, 1804, 1795, 1793, 1798, 1799,
+        1803, 1797, 1803, 1799, 1798, 1793, 1795, 1806, 1810, 1809,
+        1804, 1809, 1810, 1806, 1795, 1793, 1811, 1794, 1811, 1793,
+        1798, 1799, 1803, 1808, 1805, 2052, 2050, 2049, 2048, 2049,
+        2050, 2049, 2048, 2049, 2048, 2049, 2050, 2052, 1805, 1808,
+        1807, 1806, 1813, 1812, 1796, 1812, 1813, 1798, 1793, 1811,
+        1794, 1817, 1802, 1817, 1794, 1811, 1793, 1798, 1800, 2313,
+        2304, 2307, 2308, 2307, 2304, 2309, 2310, 2309, 2314, 2317,
+        2316, 2318, 2316, 2320, 2321, 2322, 2321, 2320, 2316, 2318,
+        2316, 2317, 2314, 2315, 2314, 2309, 2314, 2317, 2319, 2330,
+        2331, 2333, 2332, 2336, 2324, 2325, 2324, 2336, 2320, 2336,
+        2324, 2327, 2328, 2327, 2329, 2327, 2324, 2326, 2331, 2333,
+        2334, 2335, 2334
+    };
+
+    // Rocket Launcher Doorskip LTR
+    vars.rocketSplitsDS = new List<int>()
+    {
+        1,    2,    3,    5,    8,    9,    4,    9,    8,    5,
+        3,    2,    3,    5,    8,    9,    8,    5,    3,    10,
+        268,  256,  258,  263,  261,  263,  258,  263,  261,  263,
+        258,  256,  269,  270,  1027, 1024, 1025, 1026, 1025, 1024,
+        1027, 1029, 269,  256,  268,  777,  776,  769,  783,  778,
+        786,  785,  789,  790,  768,  771,  772,  771,  768,  770,
+        777,  776,  769,  785,  789,  790,  780,  782,  780,  769,
+        776,  781,  782,  781,  776,  777,  770,  768,  771,  772,
+        771,  768,  770,  777,  268,  256,  258,  263,  260,  263,
+        258,  264,  265,  266,  512,  513,  515,  517,  515,  513,
+        512,  266,  265,  264,  258,  263,  262,  263,  258,  256,
+        268,  10,   3,    5,    8,    16,   11,   12,   11,   13,
+        14,   15,   14,   13,   11,   16,   8,    5,    3,    10,
+        268,  256,  258,  267,  258,  264,  265,  266,  512,  513,
+        515,  516,  518,  519,  518,  517,  516,  515,  513,  512,
+        266,  265,  264,  258,  256,  269,  270,  1024, 1025, 1280,
+        1025, 1024, 1025, 1026, 1025, 1024, 1025, 1026, 1028, 791,
+        268,  256,  269,  270,  1027, 1024, 1025, 1280, 1281, 1280,
+        1536, 1539, 1541, 1544, 1541, 1545, 1541, 1542, 1543, 1542,
+        1541, 1545, 1541, 1539, 1540, 1539, 1536, 1541, 1542, 1543,
+        1542, 1541, 1538, 1541, 1536, 1539, 1541, 1542, 1546, 1814,
+        1815, 1804, 1792, 1800, 1792, 1804, 1795, 1793, 1798, 1799,
+        1803, 1797, 1803, 1799, 1798, 1793, 1795, 1806, 1810, 1809,
+        1804, 1809, 1810, 1806, 1795, 1793, 1811, 1794, 1811, 1793,
+        1798, 1799, 1803, 1808, 1805, 2052, 2050, 2049, 2048, 2049,
+        2050, 2049, 2048, 2049, 2048, 2049, 2050, 2052, 1805, 1808,
+        1807, 1806, 1813, 1812, 1796, 1812, 1813, 1798, 1793, 1811,
+        1794, 1817, 1802, 1817, 1794, 1811, 1793, 1795, 1804, 1792,
+        1800, 2313, 2304, 2307, 2308, 2307, 2304, 2309, 2310, 2309,
+        2314, 2317, 2316, 2318, 2316, 2320, 2321, 2322, 2321, 2320,
+        2316, 2318, 2316, 2317, 2314, 2315, 2314, 2309, 2314, 2317,
+        2319, 2330, 2331, 2333, 2332, 2336, 2324, 2325, 2324, 2336,
+        2320, 2336, 2324, 2327, 2328, 2327, 2329, 2327, 2324, 2326,
+        2331, 2333, 2334, 2335, 2334
+    };
+
+    // Knife Only Non-Doorskip
+    vars.knifeSplits = new List<int>()
+    {
+        1,    2,    3,    5,    8,    9,    4,    9,    8,    5,
+        3,    2,    3,    5,    8,    9,    8,    5,    3,    10,
+        268,  256,  258,  263,  261,  263,  258,  263,  261,  263,
+        258,  256,  269,  270,  1027, 1024, 1025, 1026, 1025, 1024,
+        1027, 1029, 269,  256,  268,  777,  776,  769,  783,  778,
+        786,  785,  789,  790,  768,  771,  772,  771,  768,  770,
+        777,  776,  769,  785,  789,  790,  780,  782,  780,  769,
+        776,  781,  782,  781,  776,  777,  770,  768,  771,  772,
+        771,  768,  770,  777,  268,  256,  258,  263,  260,  263,
+        258,  264,  265,  266,  512,  513,  515,  517,  515,  513,
+        512,  266,  265,  264,  258,  263,  262,  263,  258,  256,
+        268,  10,   3,    5,    8,    16,   11,   12,   11,   13,
+        14,   15,   14,   13,   11,   16,   8,    5,    3,    10,
+        268,  256,  258,  267,  258,  264,  265,  266,  512,  513,
+        515,  516,  518,  519,  518,  517,  516,  515,  513,  512,
+        266,  265,  264,  258,  256,  269,  270,  1024, 1025, 1280,
+        1025, 1024, 1025, 1026, 1025, 1024, 1025, 1026, 1028, 791,
+        268,  256,  269,  270,  1027, 1024, 1025, 1280, 1281, 1280,
+        1536, 1539, 1541, 1544, 1541, 1545, 1541, 1542, 1543, 1542,
+        1541, 1545, 1541, 1539, 1540, 1539, 1536, 1541, 1542, 1543,
+        1542, 1541, 1538, 1541, 1536, 1539, 1541, 1542, 1546, 1814,
+        1815, 1814, 1815, 1804, 1792, 1800, 1792, 1804, 1795, 1793,
+        1798, 1799, 1803, 1797, 1803, 1799, 1798, 1793, 1795, 1806,
+        1810, 1809, 1804, 1809, 1810, 1806, 1795, 1793, 1811, 1794,
+        1811, 1793, 1798, 1799, 1803, 1808, 1805, 2052, 2050, 2049,
+        2048, 2049, 2050, 2049, 2048, 2049, 2048, 2049, 2050, 2052,
+        1805, 1808, 1807, 1806, 1813, 1812, 1796, 1812, 1813, 1798,
+        1793, 1811, 1794, 1817, 1802, 1817, 1794, 1811, 1793, 1798,
+        1800, 2313, 2304, 2307, 2308, 2307, 2304, 2309, 2310, 2309,
+        2314, 2317, 2316, 2318, 2316, 2320, 2321, 2322, 2321, 2320,
+        2316, 2318, 2316, 2317, 2314, 2315, 2314, 2309, 2314, 2317,
+        2319, 2330, 2331, 2333, 2332, 2336, 2324, 2325, 2324, 2336,
+        2320, 2336, 2324, 2327, 2328, 2327, 2329, 2327, 2324, 2326,
+        2331, 2333, 2334, 2335, 2334
+    };
+
+    // Knife Only Doorskip LTR
+    vars.knifeSplitsDS = new List<int>()
+    {
+        1,    2,    3,    5,    8,    9,    4,    9,    8,    5,
+        3,    2,    3,    5,    8,    9,    8,    5,    3,    10,
+        268,  256,  258,  263,  261,  263,  258,  263,  261,  263,
+        258,  256,  269,  270,  1027, 1024, 1025, 1026, 1025, 1024,
+        1027, 1029, 269,  256,  268,  777,  776,  769,  783,  778,
+        786,  785,  789,  790,  768,  771,  772,  771,  768,  770,
+        777,  776,  769,  785,  789,  790,  780,  782,  780,  769,
+        776,  781,  782,  781,  776,  777,  770,  768,  771,  772,
+        771,  768,  770,  777,  268,  256,  258,  263,  260,  263,
+        258,  264,  265,  266,  512,  513,  515,  517,  515,  513,
+        512,  266,  265,  264,  258,  263,  262,  263,  258,  256,
+        268,  10,   3,    5,    8,    16,   11,   12,   11,   13,
+        14,   15,   14,   13,   11,   16,   8,    5,    3,    10,
+        268,  256,  258,  267,  258,  264,  265,  266,  512,  513,
+        515,  516,  518,  519,  518,  517,  516,  515,  513,  512,
+        266,  265,  264,  258,  256,  269,  270,  1024, 1025, 1280,
+        1025, 1024, 1025, 1026, 1025, 1024, 1025, 1026, 1028, 791,
+        268,  256,  269,  270,  1027, 1024, 1025, 1280, 1281, 1280,
+        1536, 1539, 1541, 1544, 1541, 1545, 1541, 1542, 1543, 1542,
+        1541, 1545, 1541, 1539, 1540, 1539, 1536, 1541, 1542, 1543,
+        1542, 1541, 1538, 1541, 1536, 1539, 1541, 1542, 1546, 1814,
+        1815, 1814, 1815, 1804, 1792, 1800, 1792, 1804, 1795, 1793,
+        1798, 1799, 1803, 1797, 1803, 1799, 1798, 1793, 1795, 1806,
+        1810, 1809, 1804, 1809, 1810, 1806, 1795, 1793, 1811, 1794,
+        1811, 1793, 1798, 1799, 1803, 1808, 1805, 2052, 2050, 2049,
+        2048, 2049, 2050, 2049, 2048, 2049, 2048, 2049, 2050, 2052,
+        1805, 1808, 1807, 1806, 1813, 1812, 1796, 1812, 1813, 1798,
+        1793, 1811, 1794, 1817, 1802, 1817, 1794, 1811, 1793, 1795,
+        1804, 1792, 1800, 2313, 2304, 2307, 2308, 2307, 2304, 2309,
+        2310, 2309, 2314, 2317, 2316, 2318, 2316, 2320, 2321, 2322,
+        2321, 2320, 2316, 2318, 2316, 2317, 2314, 2315, 2314, 2309,
+        2314, 2317, 2319, 2330, 2331, 2333, 2332, 2336, 2324, 2325,
+        2324, 2336, 2320, 2336, 2324, 2327, 2328, 2327, 2329, 2327,
+        2324, 2326, 2331, 2333, 2334, 2335, 2334
+    };
+
+    // S-Rank Glitched and Glitchless Non-Doorskip Non-LTR
+    vars.srankSplits = new List<int>()
+    {
+        1,    2,    3,    5,    8,    9,    4,    9,    8,    5,
+        3,    2,    3,    5,    8,    9,    8,    5,    3,    10,
+        268,  256,  258,  263,  261,  263,  258,  263,  261,  263,
+        258,  256,  269,  270,  1027, 1024, 1025, 1026, 1025, 1024,
+        1027, 1029, 269,  256,  268,  777,  776,  769,  783,  779,
+        783,  778,  786,  785,  789,  790,  768,  771,  772,  771,
+        768,  770,  777,  776,  769,  785,  784,  785,  789,  790,
+        780,  782,  780,  769,  776,  781,  782,  781,  776,  777,
+        770,  768,  771,  772,  771,  768,  770,  777,  268,  256,
+        258,  263,  260,  263,  258,  264,  265,  266,  512,  513,
+        515,  517,  515,  513,  512,  266,  265,  264,  258,  263,
+        262,  263,  258,  256,  268,  10,   3,    5,    8,    16,
+        11,   12,   11,   13,   14,   15,   14,   13,   11,   16,
+        8,    5,    3,    2,    1,    0,    1,    2,    3,    10,
+        268,  256,  258,  267,  258,  264,  265,  266,  512,  513,
+        515,  516,  518,  519,  518,  517,  516,  515,  513,  512,
+        266,  265,  264,  258,  256,  269,  270,  1024, 1025, 1280,
+        1025, 1024, 1025, 1026, 1025, 1024, 1025, 1026, 1028, 791,
+        268,  256,  269,  270,  1027, 1024, 1025, 1280, 1281, 1280,
+        1536, 1539, 1541, 1544, 1541, 1545, 1541, 1542, 1543, 1542,
+        1541, 1545, 1541, 1539, 1540, 1539, 1536, 1541, 1542, 1543,
+        1542, 1541, 1538, 1541, 1536, 1539, 1541, 1542, 1546, 1814,
+        1815, 1804, 1792, 1800, 1792, 1804, 1795, 1793, 1798, 1799,
+        1803, 1797, 1803, 1799, 1798, 1793, 1795, 1806, 1810, 1809,
+        1804, 1809, 1810, 1806, 1795, 1793, 1811, 1794, 1811, 1793,
+        1798, 1799, 1803, 1808, 1805, 2052, 2050, 2049, 2048, 2049,
+        2050, 2049, 2048, 2049, 2048, 2049, 2050, 2052, 1805, 1808,
+        1807, 1806, 1813, 1812, 1796, 1812, 1813, 1798, 1793, 1811,
+        1794, 1817, 1802, 1817, 1794, 1811, 1793, 1798, 1800, 2313,
+        2304, 2307, 2308, 2307, 2304, 2309, 2310, 2309, 2314, 2317,
+        2316, 2318, 2316, 2320, 2321, 2322, 2321, 2320, 2316, 2318,
+        2316, 2317, 2314, 2315, 2314, 2309, 2314, 2317, 2319, 2330,
+        2331, 2333, 2332, 2336, 2324, 2325, 2324, 2336, 2320, 2336,
+        2324, 2327, 2328, 2327, 2329, 2327, 2324, 2326, 2331, 2333,
+        2334, 2335, 2334
+    };
+
+    // S-Rank Glitchless Doorskip
+    vars.srankSplitsDS = new List<int>()
+    {
+        1,    2,    3,    5,    8,    9,    4,    9,    8,    5,
+        3,    2,    3,    5,    8,    9,    8,    5,    3,    10,
+        268,  256,  258,  263,  261,  263,  258,  263,  261,  263,
+        258,  256,  269,  270,  1027, 1024, 1025, 1026, 1025, 1024,
+        1027, 1029, 269,  256,  268,  777,  776,  769,  783,  779,
+        783,  778,  786,  785,  789,  790,  768,  771,  772,  771,
+        768,  770,  777,  776,  769,  785,  784,  785,  789,  790,
+        780,  782,  780,  769,  776,  781,  782,  781,  776,  777,
+        770,  768,  771,  772,  771,  768,  770,  777,  268,  256,
+        258,  263,  260,  263,  258,  264,  265,  266,  512,  513,
+        515,  517,  515,  513,  512,  266,  265,  264,  258,  263,
+        262,  263,  258,  256,  268,  10,   3,    5,    8,    16,
+        11,   12,   11,   13,   14,   15,   14,   13,   11,   16,
+        8,    5,    3,    2,    1,    0,    1,    2,    3,    10,
+        268,  256,  258,  267,  258,  264,  265,  266,  512,  513,
+        515,  516,  518,  519,  518,  517,  516,  515,  513,  512,
+        266,  265,  264,  258,  256,  269,  270,  1024, 1025, 1280,
+        1025, 1024, 1025, 1026, 1025, 1024, 1025, 1026, 1028, 791,
+        268,  256,  269,  270,  1027, 1024, 1025, 1280, 1281, 1280,
+        1536, 1539, 1541, 1544, 1541, 1545, 1541, 1542, 1543, 1542,
+        1541, 1545, 1541, 1539, 1540, 1539, 1536, 1541, 1542, 1543,
+        1542, 1541, 1538, 1541, 1536, 1539, 1541, 1542, 1546, 1814,
+        1815, 1804, 1792, 1800, 1792, 1804, 1795, 1793, 1798, 1799,
+        1803, 1797, 1803, 1799, 1798, 1793, 1795, 1806, 1810, 1809,
+        1804, 1809, 1810, 1806, 1795, 1793, 1811, 1794, 1811, 1793,
+        1798, 1799, 1803, 1808, 1805, 2052, 2050, 2049, 2048, 2049,
+        2050, 2049, 2048, 2049, 2048, 2049, 2050, 2052, 1805, 1808,
+        1807, 1806, 1813, 1812, 1796, 1812, 1813, 1798, 1793, 1811,
+        1794, 1817, 1802, 1817, 1794, 1811, 1793, 1795, 1804, 1792,
+        1800, 2313, 2304, 2307, 2308, 2307, 2304, 2309, 2310, 2309,
+        2314, 2317, 2316, 2318, 2316, 2320, 2321, 2322, 2321, 2320,
+        2316, 2318, 2316, 2317, 2314, 2315, 2314, 2309, 2314, 2317,
+        2319, 2330, 2331, 2333, 2332, 2336, 2324, 2325, 2324, 2336,
+        2320, 2336, 2324, 2327, 2328, 2327, 2329, 2327, 2324, 2326,
+        2331, 2333, 2334, 2335, 2334
+    };
+
+    // S-Rank Glitched Doorskip
+    vars.srankSplitsDSGL = new List<int>()
+    {
+        1,    2,    3,    5,    8,    9,    4,    9,    8,    5,
+        3,    2,    3,    5,    8,    9,    8,    5,    3,    10,
+        268,  256,  258,  263,  261,  263,  258,  263,  261,  263,
+        258,  256,  269,  270,  1027, 1024, 1025, 1026, 1025, 1024,
+        1027, 1029, 269,  256,  268,  777,  776,  769,  783,  779,
+        783,  778,  786,  785,  789,  790,  768,  771,  772,  771,
+        768,  770,  777,  776,  769,  783,  769,  785,  784,  785,
+        789,  790,  780,  782,  780,  769,  776,  781,  782,  781,
+        776,  777,  770,  768,  771,  772,  771,  768,  770,  777,
+        268,  256,  258,  263,  260,  263,  258,  264,  265,  266,
+        512,  513,  515,  517,  515,  513,  512,  266,  265,  264,
+        258,  263,  262,  263,  258,  256,  268,  10,   3,    5,
+        8,    16,   11,   12,   11,   13,   14,   15,   14,   13,
+        11,   16,   8,    5,    3,    2,    1,    0,    1,    2,
+        3,    10,   268,  256,  258,  267,  258,  264,  265,  266,
+        512,  513,  515,  516,  518,  519,  518,  517,  516,  515,
+        513,  512,  266,  265,  264,  258,  256,  269,  270,  1024,
+        1025, 1280, 1025, 1024, 1025, 1026, 1025, 1024, 1025, 1026,
+        1028, 791,  268,  256,  269,  270,  1027, 1024, 1025, 1280,
+        1281, 1280, 1536, 1539, 1541, 1544, 1541, 1545, 1541, 1542,
+        1543, 1542, 1541, 1545, 1541, 1539, 1540, 1539, 1536, 1541,
+        1542, 1543, 1542, 1541, 1538, 1541, 1536, 1539, 1541, 1542,
+        1546, 1814, 1815, 1804, 1792, 1800, 1792, 1804, 1795, 1793,
+        1798, 1799, 1803, 1797, 1803, 1799, 1798, 1793, 1795, 1806,
+        1810, 1809, 1804, 1809, 1810, 1806, 1795, 1793, 1811, 1794,
+        1811, 1793, 1798, 1799, 1803, 1808, 1805, 2052, 2050, 2049,
+        2048, 2049, 2050, 2049, 2048, 2049, 2048, 2049, 2050, 2052,
+        1805, 1808, 1807, 1806, 1813, 1812, 1796, 1812, 1813, 1798,
+        1793, 1811, 1794, 1817, 1802, 1817, 1794, 1811, 1793, 1795,
+        1804, 1792, 1800, 2313, 2304, 2307, 2308, 2307, 2304, 2309,
+        2310, 2309, 2314, 2317, 2316, 2318, 2316, 2320, 2321, 2322,
+        2321, 2320, 2316, 2318, 2316, 2317, 2314, 2315, 2314, 2309,
+        2314, 2317, 2319, 2330, 2331, 2333, 2332, 2336, 2324, 2325,
+        2324, 2336, 2320, 2336, 2324, 2327, 2328, 2327, 2329, 2327,
+        2324, 2326, 2331, 2333, 2334, 2335, 2334
+    };
+
+    // Read flags from indexed memory addresses
+    vars.ReadFlag = (Func<IntPtr, int, bool>)((pointer, id) => {
+        int idx = (id / 32);
+        int bit = (id % 32);
+
+        IntPtr address = IntPtr.Add(pointer, idx * 4);
+
+        uint buffer = 0;
+        memory.ReadValue<uint>(address, out buffer);
+
+        int value = vars.isBigEndian ? (int)vars.SwapBytesInt(buffer) : (int)buffer;
+
+        return ((value >> (31 - bit)) & 1) != 0;
+    });
 
     // Log splits
     vars.LogSplit = (Action<string>)((text) => {
@@ -377,26 +880,73 @@ init
 
     // Update split status
     vars.UpdateSplit = (Func<string, bool>)((split) => {
-        if (!vars.splits[split])
+        if (!vars.splits[split] && settings[split])
         {
-            vars.LogSplit(split);
             vars.splits[split] = true;
-            return settings[split];
+            vars.LogSplit(split);
+            return true;
         }
-        else
-            return false;
+
+        return false;
     });
 
     // Update item split status
     vars.UpdateItemSplit = (Func<byte, bool>)((id) => {
-        if (!vars.itemSplits[id])
+        if (!vars.itemSplits[id] && settings[vars.itemIndex[id]])
         {
-            vars.LogSplit(vars.itemIndex[id] + " (" + id.ToString() + ")");
             vars.itemSplits[id] = true;
-            return settings[vars.itemIndex[id]];
+            vars.LogSplit(vars.itemIndex[id] + " (" + id.ToString() + ") (" + settings[vars.itemIndex[id]].ToString() + ")");
+            return true;
         }
-        else
-            return false;
+
+        return false;
+    });
+
+    // Update door split status
+    vars.UpdateDoorSplit = (Func<int, int, bool>)((id, prevId) => {
+        if (
+             settings["basicSplits"] || 
+            (settings["anySplits"]       && vars.anySplits[vars.doorsIndex] == id)      ||
+            (settings["anySplitsDS"]     && vars.anySplitsDS[vars.doorsIndex] == id)    ||
+            (settings["rocketSplits"]    && vars.rocketSplits[vars.doorsIndex] == id)   ||
+            (settings["rocketSplitsDS"]  && vars.rocketSplitsDS[vars.doorsIndex] == id) ||
+            (settings["knifeSplits"]     && vars.knifeSplits[vars.doorsIndex] == id)    ||
+            (settings["knifeSplitsDS"]   && vars.knifeSplitsDS[vars.doorsIndex] == id)  ||
+            (settings["srankSplits"]     && vars.srankSplits[vars.doorsIndex] == id)    ||
+            (settings["srankSplitsDS"]   && vars.srankSplitsDS[vars.doorsIndex] == id)  ||
+            (settings["srankSplitsDSGL"] && vars.srankSplitsDSGL[vars.doorsIndex] == id)
+        )
+        {
+            vars.LogSplit("Door " + prevId + " to " + id);
+            vars.doorsIndex++;
+            return true;
+        }
+
+        return false;
+    });
+
+    // Update killed split status
+    vars.UpdateKilledSplit = (Func<short, bool>)((id) => {
+        if (!vars.killedSplits[id] && settings[vars.killedIndex[id]])
+        {
+            vars.killedSplits[id] = true;
+            vars.LogSplit(vars.killedIndex[id] + " (" + id.ToString() + ")");
+            return true;
+        }
+
+        return false;
+    });
+
+    // Update events split status
+    vars.UpdateEventsSplit = (Func<short, bool>)((id) => {
+        if (!vars.eventsSplits[id] && settings[vars.eventsIndex[id]])
+        {
+            vars.eventsSplits[id] = true;
+            vars.LogSplit(vars.eventsIndex[id] + " (" + id.ToString() + ")");
+            return true;
+        }
+
+        return false;
     });
 
     // Sets memory pointers for the detected game release
@@ -404,25 +954,31 @@ init
         string product = (string)vars.productCode ?? String.Empty;
         if (vars.productPointers.ContainsKey(product))
         {
-            timePtr = vars.productPointers[product]["timePtr"];
-            roomPtr = vars.productPointers[product]["roomPtr"];
-            screenPtr = vars.productPointers[product]["screenPtr"];
-            healthPtr = vars.productPointers[product]["healthPtr"];
-            statusPtr = vars.productPointers[product]["statusPtr"];
-            characterPtr = vars.productPointers[product]["characterPtr"];
-            inventoryPtr = vars.productPointers[product]["inventoryPtr"];
-            doorFlagPtr = vars.productPointers[product]["doorFlagPtr"];
+            timePtr = IntPtr.Add(basePointer, vars.productPointers[product]["timePtr"]);
+            roomPtr = IntPtr.Add(basePointer, vars.productPointers[product]["roomPtr"]);
+            screenPtr = IntPtr.Add(basePointer, vars.productPointers[product]["screenPtr"]);
+            healthPtr = IntPtr.Add(basePointer, vars.productPointers[product]["healthPtr"]);
+            statusPtr = IntPtr.Add(basePointer, vars.productPointers[product]["statusPtr"]);
+            characterPtr = IntPtr.Add(basePointer, vars.productPointers[product]["characterPtr"]);
+            inventoryPtr = IntPtr.Add(basePointer, vars.productPointers[product]["inventoryPtr"]);
+            doorFlagPtr = IntPtr.Add(basePointer, vars.productPointers[product]["doorFlagPtr"]);
+            enemyPtr = IntPtr.Add(basePointer, vars.productPointers[product]["enemyPtr"]);
+            killedPtr = IntPtr.Add(basePointer, vars.productPointers[product]["killedPtr"]);
+            eventsPtr = IntPtr.Add(basePointer, vars.productPointers[product]["eventsPtr"]);
         }
         else
         {
-            timePtr = 0;
-            roomPtr = 0;
-            screenPtr = 0;
-            healthPtr = 0;
-            statusPtr = 0;
-            characterPtr = 0;
-            inventoryPtr = 0;
-            doorFlagPtr = 0;
+            timePtr = IntPtr.Zero;
+            roomPtr = IntPtr.Zero;
+            screenPtr = IntPtr.Zero;
+            healthPtr = IntPtr.Zero;
+            statusPtr = IntPtr.Zero;
+            characterPtr = IntPtr.Zero;
+            inventoryPtr = IntPtr.Zero;
+            doorFlagPtr = IntPtr.Zero;
+            enemyPtr = IntPtr.Zero;
+            killedPtr = IntPtr.Zero;
+            eventsPtr = IntPtr.Zero;
         }
     });
 
@@ -442,7 +998,9 @@ init
                 }
 
                 productPointer = basePointer;
+
                 vars.isBigEndian = true;
+                vars.console = "GCN";
 
                 // Prevent debugger spam
                 if (basePointer != IntPtr.Zero)
@@ -457,6 +1015,7 @@ init
                 productPointer = IntPtr.Add(basePointer, 0x00015B90);
 
                 vars.isBigEndian = false;
+                vars.console = "PS2";
                 
                 print("pcsx2 basePointer: " + basePointer.ToString("X8"));
                 print("pcsx2 productPointer: " + productPointer.ToString("X8"));
@@ -476,6 +1035,7 @@ init
                 productPointer = IntPtr.Add(basePointer, 0x00012610);
 
                 vars.isBigEndian = false;
+                vars.console = "PS2";
                  
                 print("pcsx2-qtx64 basePointer: " + basePointer.ToString("X16"));
                 print("pcsx2-qtx64 productPointer: " + productPointer.ToString("X16"));
@@ -489,6 +1049,7 @@ init
                 productPointer = scanner.Scan(target);
 
                 vars.isBigEndian = true;
+                vars.console = "PS3";
                 
                 print("rpcs3 basePointer: " + basePointer.ToString("X16"));
                 print("rpcs3 productPointer: " + productPointer.ToString("X16"));
@@ -499,6 +1060,7 @@ init
                 productPointer = IntPtr.Zero;
 
                 vars.isBigEndian = false;
+                vars.console = String.Empty;
                 
                 print("default basePointer: " + basePointer.ToString("X8"));
                 print("default productPointer: " + productPointer.ToString("X8"));
@@ -511,7 +1073,7 @@ init
         string productCode = String.Empty;
 
         // Update the emulator base pointers if the product pointer is 0
-        if (productPointer == IntPtr.Zero) 
+        if (productPointer == IntPtr.Zero)
         {
             vars.UpdateProcess();
         }
@@ -563,15 +1125,17 @@ init
         byte status = 0; // Character status info
         byte character = 0; // Character ID (0 Claire, 1 Chris, 2 Steve, 3 Wesker)
         byte door = 0; // Current status of door for load remover time
+        ushort enemy = 0; // Enemy type
 
         // Read values from memory
-        memory.ReadValue<uint>(IntPtr.Add(basePointer, timePtr), out time);
-        memory.ReadValue<ushort>(IntPtr.Add(basePointer, roomPtr), out room);
-        memory.ReadValue<byte>(IntPtr.Add(basePointer, screenPtr), out screen);
-        memory.ReadValue<uint>(IntPtr.Add(basePointer, healthPtr), out health);
-        memory.ReadValue<byte>(IntPtr.Add(basePointer, statusPtr), out status);
-        memory.ReadValue<byte>(IntPtr.Add(basePointer, characterPtr), out character);
-        memory.ReadValue<byte>(IntPtr.Add(basePointer, doorFlagPtr), out door);
+        memory.ReadValue<uint>(timePtr, out time);
+        memory.ReadValue<ushort>(roomPtr, out room);
+        memory.ReadValue<byte>(screenPtr, out screen);
+        memory.ReadValue<uint>(healthPtr, out health);
+        memory.ReadValue<byte>(statusPtr, out status);
+        memory.ReadValue<byte>(characterPtr, out character);
+        memory.ReadValue<byte>(doorFlagPtr, out door);
+        memory.ReadValue<ushort>(IntPtr.Add(enemyPtr, 0x4), out enemy);
 
         current.slot = 0; // Inventory slot number of the equipped item
         current.ammo = 0; // Ammo count for the equipped weapon
@@ -583,6 +1147,9 @@ init
         current.character = character;
         current.inventory = new byte[11]; // Current characters inventory
         current.door = door;
+        current.enemy = vars.isBigEndian ? (short)vars.SwapBytes(enemy) : (short)enemy;
+        current.killed = new bool[vars.killedSplits.Count]; // Killed enemy flags
+        current.events = new bool[vars.eventsSplits.Count]; // Events flags
 
         // Check status for gassed or poison flags
         if ((status & 0x20) != 0)
@@ -593,7 +1160,7 @@ init
         int index = -1; // Inventory array index
 
         // Pointer to the current characters inventory table
-        IntPtr pointer = IntPtr.Add(basePointer, inventoryPtr + (character * 0x40));
+        IntPtr pointer = IntPtr.Add(inventoryPtr, (character * 0x40));
 
         // Read inventory of the current character
         for (int i = 0; i < 12; ++i)
@@ -626,6 +1193,13 @@ init
             if (current.slot == (index + 1))
                 current.ammo = BitConverter.ToInt16(bytes, 0);
         }
+
+        foreach(int i in vars.killedMap.Keys) {
+            current.killed[i] = vars.ReadFlag(killedPtr, vars.killedMap[i]);
+        }
+
+        foreach(int i in vars.eventsMap.Keys)
+            current.events[i] = vars.ReadFlag(eventsPtr, vars.eventsMap[i]);
     });
 
     // Initialise values
@@ -647,12 +1221,21 @@ update
     if (timer.CurrentPhase == TimerPhase.NotRunning)
     {
         vars.ResetSplits();
+        vars.ResetDoorSplits();
         vars.ResetItemSplits();
+        vars.ResetKilledSplits();
+        vars.ResetEventsSplits();
     }
 }
 
 split
 {
+    bool split = false;
+
+    // End Game Rank Screen
+    if (current.screen == 0x04)
+        return vars.UpdateSplit("endGame");
+
     // Split when an inventory entry changes
     for (int i = 0; i < current.inventory.Length; i++)
     {
@@ -715,25 +1298,44 @@ split
 
             default: // Split the first time an item is added to the inventory
                 if (vars.itemSplits.ContainsKey(item))
-                    return vars.UpdateItemSplit(item);
+                    split = split || vars.UpdateItemSplit(item);
                 break;
         }
     }
 
-    if (current.room == 0x0501) // Transport Plane Cargo Hold
-        return vars.UpdateSplit("tyrantPlane");
+    // Change to the next room
+    if (current.room != old.room)
+    {
+        if (vars.doorsEnabled)
+            split = split || vars.UpdateDoorSplit(current.room, old.room);
+        else
+        {
+            if (current.room == 0x0501) // Transport Plane Cargo Hold
+                split = split || vars.UpdateSplit("tyrantPlane");
 
-    if (current.room == 0x0600) // Antartic Transport Terminal B1 Silo
-        return vars.UpdateSplit("antarcticaBase");
+            if (current.room == 0x0600) // Antartic Transport Terminal B1 Silo
+                split = split || vars.UpdateSplit("antarcticaBase");
 
-    if (current.room == 0x060A) // Antartic Transport Terminal 1F Helipad
-        return vars.UpdateSplit("nosferatuFight");
+            if (current.room == 0x060A) // Antartic Transport Terminal 1F Helipad
+                split = split || vars.UpdateSplit("nosferatuFight");
 
-    if (current.room == 0x0716) // Military Training Facility B3 Cave
-        return vars.UpdateSplit("startChris");
+            if (current.room == 0x0716) // Military Training Facility B3 Cave
+                split = split || vars.UpdateSplit("startChris");
+        }
+    }
 
-    if (current.screen == 0x04) // End Game Rank Screen
-        return vars.UpdateSplit("endGame");
+    if (current.enemy != old.enemy && current.enemy == 13)
+        split = split || vars.UpdateSplit("alexia2Spawned");
+
+    foreach(int i in vars.killedMap.Keys)
+        if (current.killed[i] != old.killed[i] && current.killed[i])
+            split = split || vars.UpdateKilledSplit(vars.killedMap[i]);
+
+    foreach(int i in vars.eventsMap.Keys)
+        if (current.events[i] != old.events[i] && current.events[i])
+            split = split || vars.UpdateEventsSplit(vars.eventsMap[i]);
+
+    return split;
 }
 
 gameTime

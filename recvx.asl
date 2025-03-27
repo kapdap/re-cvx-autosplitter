@@ -330,7 +330,7 @@ startup
     settings.Add("infogroup", false, "Info");
     settings.Add("infogroup1", false, "Resident Evil: Code: Veronica Auto Splitter by Kapdap", "infogroup");
     settings.Add("infogroup2", false, "Website: https://github.com/kapdap/re-cvx-autosplitter", "infogroup");
-    settings.Add("infogroup3", false, "Last Update: 2025-02-09T13:00:00+1200", "infogroup");
+    settings.Add("infogroup3", false, "Last Update: 2025-03-27T19:15:00+1200", "infogroup");
 }
 
 init

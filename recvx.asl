@@ -1042,11 +1042,8 @@ init
                 break;
 
             case "rpcs3":
-                SignatureScanner scanner = new SignatureScanner(game, game.MainModule.BaseAddress, (int)game.MainModule.ModuleMemorySize);
-                SigScanTarget target = new SigScanTarget(-0xE0, "50 53 33 5F 47 41 4D 45 00 00 00 00 00 00 00 00 08 00 00 00 00 00 00 00 0F 00 00 00 00 00 00 00 30 30");;
-                
                 basePointer = new IntPtr(0x300000000);
-                productPointer = scanner.Scan(target);
+                productPointer = IntPtr.Add(basePointer, 0x10010251);
 
                 vars.isBigEndian = true;
                 vars.console = "PS3";

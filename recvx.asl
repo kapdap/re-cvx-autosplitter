@@ -14,6 +14,7 @@
 state("rpcs3") {}
 state("pcsx2") {}
 state("pcsx2-qtx64") {}
+state("pcsx2-qt") {}
 state("dolphin") {}
 
 startup
@@ -330,7 +331,7 @@ startup
     settings.Add("infogroup", false, "Info");
     settings.Add("infogroup1", false, "Resident Evil: Code: Veronica Auto Splitter by Kapdap", "infogroup");
     settings.Add("infogroup2", false, "Website: https://github.com/kapdap/re-cvx-autosplitter", "infogroup");
-    settings.Add("infogroup3", false, "Last Update: 2025-03-27T19:15:00+1200", "infogroup");
+    settings.Add("infogroup3", false, "Last Update: 2025-08-27T19:25:00+1200", "infogroup");
 }
 
 init
@@ -494,6 +495,14 @@ init
         { "enemyPtr", 0x00BDEBF8 },
         { "killedPtr", 0x00BB3728 },
         { "eventsPtr", 0x00BB3628 }
+    });
+
+    vars.productOffsets = new Dictionary<string, List<int>>();
+    vars.productOffsets.Add("PS2", new List<int>()
+    {
+        0x00012610,
+        0x000155D0,
+        0x00015B90
     });
 
     // Any% Glitched and Glitchless Non-Doorskip Non-LTR
@@ -1022,6 +1031,7 @@ init
                 break;
 
             case "pcsx2-qtx64": // PCSX2 1.7+
+            case "pcsx2-qt": // PCSX2 2.4.0+
                 IntPtr baseAddress = game.MainModule.BaseAddress;
 
                 // Get pointer to EEmem function from PE header
@@ -1032,7 +1042,7 @@ init
                 int eemem = memory.ReadValue<int>(IntPtr.Add(baseAddress, functions + 0x04));
 
                 basePointer = (IntPtr)(memory.ReadValue<long>(IntPtr.Add(baseAddress, eemem)));
-                productPointer = IntPtr.Add(basePointer, 0x00012610);
+                productPointer = basePointer;
 
                 vars.isBigEndian = false;
                 vars.console = "PS2";
@@ -1104,13 +1114,21 @@ init
             case "dolphin":
                 return memory.ReadString(pointer, 6);
             case "pcsx2":
+            case "pcsx2-qt":
             case "pcsx2-qtx64":
-                return memory.ReadString(pointer, 11);
+                // Check all possible product code offsets
+                foreach (int offset in vars.productOffsets["PS2"])
+                {
+                    string product = memory.ReadString(IntPtr.Add(pointer, offset), 11);
+                    if (!String.IsNullOrEmpty(product) && vars.productPointers.ContainsKey(product))
+                        return product;
+                }
+                break;
             case "rpcs3":
                 return memory.ReadString(pointer, 9);
-            default:
-                return String.Empty;
         }
+
+        return String.Empty;
     });
 
     // Updates game values

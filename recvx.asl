@@ -331,7 +331,7 @@ startup
     settings.Add("infogroup", false, "Info");
     settings.Add("infogroup1", false, "Resident Evil: Code: Veronica Auto Splitter by Kapdap", "infogroup");
     settings.Add("infogroup2", false, "Website: https://github.com/kapdap/re-cvx-autosplitter", "infogroup");
-    settings.Add("infogroup3", false, "Last Update: 2025-08-27T19:25:00+1200", "infogroup");
+    settings.Add("infogroup3", false, "Last Update: 2025-08-27T19:35:00+1200", "infogroup");
 }
 
 init
@@ -1021,7 +1021,7 @@ init
 
             case "pcsx2": // PCSX2 1.6
                 basePointer = new IntPtr(0x20000000);
-                productPointer = IntPtr.Add(basePointer, 0x00015B90);
+                productPointer = basePointer;
 
                 vars.isBigEndian = false;
                 vars.console = "PS2";

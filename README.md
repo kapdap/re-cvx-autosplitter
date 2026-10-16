@@ -25,6 +25,14 @@ PlayStation 3 releases:
 - [**NPUB30467**] [US] Resident Evil: Code: Veronica X HD
 - [**NPEB00553**] [EU] Resident Evil: Code: Veronica X
 
+### ps3recomp PC port
+
+Native Windows port of the PlayStation 3 releases built with ps3recomp. The executable exports `g_cv_livesplit`, which tells the Auto Splitter where the PS3 memory starts:
+
+- [**NPJB00135**] [JP] `MyGameRecomp_JP.exe`
+- [**NPUB30467**] [US] `MyGameRecomp_US.exe`
+- [**NPEB00553**] [EU] `MyGameRecomp.exe`
+
 ### [PCSX2](https://pcsx2.net/)
 
 PlayStation 2 releases:

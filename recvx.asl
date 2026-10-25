@@ -12,6 +12,9 @@
  */
 
 state("rpcs3") {}
+state("MyGameRecomp") {}
+state("MyGameRecomp_JP") {}
+state("MyGameRecomp_US") {}
 state("pcsx2") {}
 state("pcsx2-qtx64") {}
 state("pcsx2-qt") {}
@@ -1062,6 +1065,59 @@ init
                 print("rpcs3 productPointer: " + productPointer.ToString("X16"));
                 break;
 
+            case "mygamerecomp": // ps3recomp PC port (EU)
+            case "mygamerecomp_jp": // ps3recomp PC port (JP)
+            case "mygamerecomp_us": // ps3recomp PC port (US)
+                // The port exports g_cv_livesplit: "PS3RECOMP-CVX" at 0x00, the
+                // guest memory base (u64) at 0x10 and the product code at 0x18.
+                // Game variables sit at their PS3 addresses from that base.
+                basePointer = IntPtr.Zero;
+                productPointer = IntPtr.Zero;
+
+                vars.isBigEndian = true;
+                vars.console = "PS3";
+
+                try
+                {
+                    IntPtr recompModule = game.MainModule.BaseAddress;
+
+                    // Locate g_cv_livesplit by name in the PE export table
+                    int recompPe = memory.ReadValue<int>(IntPtr.Add(recompModule, 0x3C));
+                    int recompExports = memory.ReadValue<int>(IntPtr.Add(recompModule, recompPe + 0x88));
+                    int recompCount = memory.ReadValue<int>(IntPtr.Add(recompModule, recompExports + 0x18));
+                    int recompFunctions = memory.ReadValue<int>(IntPtr.Add(recompModule, recompExports + 0x1C));
+                    int recompNames = memory.ReadValue<int>(IntPtr.Add(recompModule, recompExports + 0x20));
+                    int recompOrdinals = memory.ReadValue<int>(IntPtr.Add(recompModule, recompExports + 0x24));
+
+                    for (int i = 0; i < recompCount; i++)
+                    {
+                        int name = memory.ReadValue<int>(IntPtr.Add(recompModule, recompNames + i * 4));
+                        if (memory.ReadString(IntPtr.Add(recompModule, name), 32) != "g_cv_livesplit")
+                            continue;
+
+                        ushort ordinal = memory.ReadValue<ushort>(IntPtr.Add(recompModule, recompOrdinals + i * 2));
+                        IntPtr marker = IntPtr.Add(recompModule, memory.ReadValue<int>(IntPtr.Add(recompModule, recompFunctions + ordinal * 4)));
+                        long guestBase = memory.ReadValue<long>(IntPtr.Add(marker, 0x10));
+
+                        // Base is zero until the game has reserved its memory, retry on next update
+                        if (memory.ReadString(marker, 13) == "PS3RECOMP-CVX" && guestBase != 0)
+                        {
+                            basePointer = new IntPtr(guestBase);
+                            productPointer = IntPtr.Add(marker, 0x18);
+                        }
+                        break;
+                    }
+                }
+                catch
+                {
+                    basePointer = IntPtr.Zero;
+                    productPointer = IntPtr.Zero;
+                }
+
+                print("ps3recomp basePointer: " + basePointer.ToString("X16"));
+                print("ps3recomp productPointer: " + productPointer.ToString("X16"));
+                break;
+
             default:
                 basePointer = IntPtr.Zero;
                 productPointer = IntPtr.Zero;
@@ -1125,6 +1181,9 @@ init
                 }
                 break;
             case "rpcs3":
+            case "mygamerecomp":
+            case "mygamerecomp_jp":
+            case "mygamerecomp_us":
                 return memory.ReadString(pointer, 9);
         }
 

@@ -4,7 +4,7 @@
 
 A [LiveSplit](https://livesplit.org/) Auto Splitter for Resident Evil/Biohazard: Code: Veronica for RPCS3, PCSX2 and Dolphin emulators. This Auto Splitter allows you to create splits for item pickups, room transitions and bosses. It can also compare against in game time and remove load time. Additionaly, character health, poison status and equipped weapon ammo can be displayed in LiveSplit with the [ASL Var Viewer](https://github.com/hawkerm/LiveSplit.ASLVarViewer) component.
 
-*Last Update: 2025-08-27T19:35:00+1200*
+*Last Update: 2026-10-26T01:20:00+1300*
 
 ## Extras
 
@@ -25,14 +25,6 @@ PlayStation 3 releases:
 - [**NPUB30467**] [US] Resident Evil: Code: Veronica X HD
 - [**NPEB00553**] [EU] Resident Evil: Code: Veronica X
 
-### ps3recomp PC port
-
-Native Windows port of the PlayStation 3 releases built with ps3recomp. The executable exports `g_cv_livesplit`, which tells the Auto Splitter where the PS3 memory starts:
-
-- [**NPJB00135**] [JP] `MyGameRecomp_JP.exe`
-- [**NPUB30467**] [US] `MyGameRecomp_US.exe`
-- [**NPEB00553**] [EU] `MyGameRecomp.exe`
-
 ### [PCSX2](https://pcsx2.net/)
 
 PlayStation 2 releases:
@@ -49,12 +41,19 @@ GameCube releases:
 - [**GCDE08**] [US] Resident Evil: Code: Veronica X
 - [**GCDP08**] [EU] Resident Evil: Code: Veronica X
 
+### [ps3recomp](https://github.com/kastieloficial/RE-Code-Veronica-Recomp)
+
+- [**NPUB30467**] [US] Biohazard: Code: Veronica Kanzenban
+- [**NPUB30467**] [US] Resident Evil: Code: Veronica X HD
+- [**NPEB00553**] [EU] Resident Evil: Code: Veronica X
+
 ## Announcement Links
 
 - [SRC Forums - Auto Splitter now available in LiveSplit!](https://www.speedrun.com/cvx/thread/8raeo)
 
 ## Acknowledgements
 
+- [Kastiel](https://github.com/kastieloficial/) - PS3 static recomp and support.
 - [TheDementedSalad](https://www.twitch.tv/thedementedsalad) - Load remover time support.
 - [redshines](https://www.twitch.tv/redshines) - Door split routes and testing.
 - [Jujstme](https://github.com/Jujstme/) - Improved Dolphin support.

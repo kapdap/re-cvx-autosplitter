@@ -1,10 +1,10 @@
-// SPDX-FileCopyrightText: 2025 Kapdap <kapdap@pm.me>
+// SPDX-FileCopyrightText: 2026 Kapdap <kapdap@pm.me>
 //
 // SPDX-License-Identifier: MIT
 /*  Resident Evil/Biohazard: Code: Veronica Auto Splitter
  *  https://github.com/kapdap/re-cvx-autosplitter
  *
- *  Copyright 2025 Kapdap <kapdap@pm.me>
+ *  Copyright 2026 Kapdap <kapdap@pm.me>
  *
  *  Use of this source code is governed by an MIT-style
  *  license that can be found in the LICENSE file or at
@@ -12,13 +12,13 @@
  */
 
 state("rpcs3") {}
-state("MyGameRecomp") {}
-state("MyGameRecomp_JP") {}
-state("MyGameRecomp_US") {}
 state("pcsx2") {}
 state("pcsx2-qtx64") {}
 state("pcsx2-qt") {}
 state("dolphin") {}
+state("CodeVeronicaPort") {}
+state("CodeVeronicaPort_JP") {}
+state("CodeVeronicaPort_US") {}
 
 startup
 {
@@ -329,12 +329,14 @@ startup
     settings.SetToolTip("contributors1", "Added support for load remover time");
     settings.Add("contributors2", false, "redshines (https://www.twitch.tv/redshines)", "contributors");
     settings.SetToolTip("contributors2", "Door split routes and testing");
+    settings.Add("contributors3", false, "Kastiel (https://github.com/kastieloficial)", "contributors");
+    settings.SetToolTip("contributors3", "PS3 static recomp and support");
 
     // Application information
     settings.Add("infogroup", false, "Info");
     settings.Add("infogroup1", false, "Resident Evil: Code: Veronica Auto Splitter by Kapdap", "infogroup");
     settings.Add("infogroup2", false, "Website: https://github.com/kapdap/re-cvx-autosplitter", "infogroup");
-    settings.Add("infogroup3", false, "Last Update: 2025-08-27T19:35:00+1200", "infogroup");
+    settings.Add("infogroup3", false, "Last Update: 2026-10-26T01:20:00+1300", "infogroup");
 }
 
 init
@@ -877,6 +879,32 @@ init
         return ((value >> (31 - bit)) & 1) != 0;
     });
 
+    // Locates an export by name in the PE export table
+    vars.ReadExport = (Func<IntPtr, string, IntPtr>)((module, name) => {
+        try
+        {
+            int pe = memory.ReadValue<int>(IntPtr.Add(module, 0x3C));
+            int exports = memory.ReadValue<int>(IntPtr.Add(module, pe + 0x88));
+            int count = memory.ReadValue<int>(IntPtr.Add(module, exports + 0x18));
+            int functions = memory.ReadValue<int>(IntPtr.Add(module, exports + 0x1C));
+            int names = memory.ReadValue<int>(IntPtr.Add(module, exports + 0x20));
+            int ordinals = memory.ReadValue<int>(IntPtr.Add(module, exports + 0x24));
+
+            for (int i = 0; i < count; i++)
+            {
+                int entry = memory.ReadValue<int>(IntPtr.Add(module, names + i * 4));
+                if (memory.ReadString(IntPtr.Add(module, entry), 32) != name)
+                    continue;
+
+                ushort ordinal = memory.ReadValue<ushort>(IntPtr.Add(module, ordinals + i * 2));
+                return IntPtr.Add(module, memory.ReadValue<int>(IntPtr.Add(module, functions + ordinal * 4)));
+            }
+        }
+        catch {}
+
+        return IntPtr.Zero;
+    });
+
     // Log splits
     vars.LogSplit = (Action<string>)((text) => {
         vars.lastSplit = text;
@@ -917,7 +945,7 @@ init
     // Update door split status
     vars.UpdateDoorSplit = (Func<int, int, bool>)((id, prevId) => {
         if (
-             settings["basicSplits"] || 
+             settings["basicSplits"] ||
             (settings["anySplits"]       && vars.anySplits[vars.doorsIndex] == id)      ||
             (settings["anySplitsDS"]     && vars.anySplitsDS[vars.doorsIndex] == id)    ||
             (settings["rocketSplits"]    && vars.rocketSplits[vars.doorsIndex] == id)   ||
@@ -1028,28 +1056,21 @@ init
 
                 vars.isBigEndian = false;
                 vars.console = "PS2";
-                
+
                 print("pcsx2 basePointer: " + basePointer.ToString("X8"));
                 print("pcsx2 productPointer: " + productPointer.ToString("X8"));
                 break;
 
             case "pcsx2-qtx64": // PCSX2 1.7+
             case "pcsx2-qt": // PCSX2 2.4.0+
-                IntPtr baseAddress = game.MainModule.BaseAddress;
+                IntPtr eemem = vars.ReadExport(game.MainModule.BaseAddress, "EEmem");
 
-                // Get pointer to EEmem function from PE header
-                int directory = memory.ReadValue<int>(IntPtr.Add(baseAddress, 0x100));
-                int functions = memory.ReadValue<int>(IntPtr.Add(baseAddress, directory + 0x1C));
-
-                // TODO: Locate function by name instead of index
-                int eemem = memory.ReadValue<int>(IntPtr.Add(baseAddress, functions + 0x04));
-
-                basePointer = (IntPtr)(memory.ReadValue<long>(IntPtr.Add(baseAddress, eemem)));
+                basePointer = eemem != IntPtr.Zero ? (IntPtr)memory.ReadValue<long>(eemem) : IntPtr.Zero;
                 productPointer = basePointer;
 
                 vars.isBigEndian = false;
                 vars.console = "PS2";
-                 
+
                 print("pcsx2-qtx64 basePointer: " + basePointer.ToString("X16"));
                 print("pcsx2-qtx64 productPointer: " + productPointer.ToString("X16"));
                 break;
@@ -1060,62 +1081,38 @@ init
 
                 vars.isBigEndian = true;
                 vars.console = "PS3";
-                
+
                 print("rpcs3 basePointer: " + basePointer.ToString("X16"));
                 print("rpcs3 productPointer: " + productPointer.ToString("X16"));
                 break;
 
-            case "mygamerecomp": // ps3recomp PC port (EU)
-            case "mygamerecomp_jp": // ps3recomp PC port (JP)
-            case "mygamerecomp_us": // ps3recomp PC port (US)
-                // The port exports g_cv_livesplit: "PS3RECOMP-CVX" at 0x00, the
-                // guest memory base (u64) at 0x10 and the product code at 0x18.
-                // Game variables sit at their PS3 addresses from that base.
-                basePointer = IntPtr.Zero;
-                productPointer = IntPtr.Zero;
+            case "codeveronicaport":
+            case "codeveronicaport_jp":
+            case "codeveronicaport_us":
+                IntPtr marker = vars.ReadExport(game.MainModule.BaseAddress, "g_cv_livesplit");
+                IntPtr basept = marker != IntPtr.Zero ? (IntPtr)memory.ReadValue<long>(IntPtr.Add(marker, 0x10)) : IntPtr.Zero;
 
-                vars.isBigEndian = true;
-                vars.console = "PS3";
-
-                try
+                // Base is zero until the game has reserved its memory, retry on next update
+                if (memory.ReadString(marker, 13) == "PS3RECOMP-CVX" && basept != IntPtr.Zero)
                 {
-                    IntPtr recompModule = game.MainModule.BaseAddress;
-
-                    // Locate g_cv_livesplit by name in the PE export table
-                    int recompPe = memory.ReadValue<int>(IntPtr.Add(recompModule, 0x3C));
-                    int recompExports = memory.ReadValue<int>(IntPtr.Add(recompModule, recompPe + 0x88));
-                    int recompCount = memory.ReadValue<int>(IntPtr.Add(recompModule, recompExports + 0x18));
-                    int recompFunctions = memory.ReadValue<int>(IntPtr.Add(recompModule, recompExports + 0x1C));
-                    int recompNames = memory.ReadValue<int>(IntPtr.Add(recompModule, recompExports + 0x20));
-                    int recompOrdinals = memory.ReadValue<int>(IntPtr.Add(recompModule, recompExports + 0x24));
-
-                    for (int i = 0; i < recompCount; i++)
-                    {
-                        int name = memory.ReadValue<int>(IntPtr.Add(recompModule, recompNames + i * 4));
-                        if (memory.ReadString(IntPtr.Add(recompModule, name), 32) != "g_cv_livesplit")
-                            continue;
-
-                        ushort ordinal = memory.ReadValue<ushort>(IntPtr.Add(recompModule, recompOrdinals + i * 2));
-                        IntPtr marker = IntPtr.Add(recompModule, memory.ReadValue<int>(IntPtr.Add(recompModule, recompFunctions + ordinal * 4)));
-                        long guestBase = memory.ReadValue<long>(IntPtr.Add(marker, 0x10));
-
-                        // Base is zero until the game has reserved its memory, retry on next update
-                        if (memory.ReadString(marker, 13) == "PS3RECOMP-CVX" && guestBase != 0)
-                        {
-                            basePointer = new IntPtr(guestBase);
-                            productPointer = IntPtr.Add(marker, 0x18);
-                        }
-                        break;
-                    }
+                    basePointer = basept;
+                    productPointer = IntPtr.Add(marker, 0x18);
                 }
-                catch
+                else
                 {
                     basePointer = IntPtr.Zero;
                     productPointer = IntPtr.Zero;
                 }
 
-                print("ps3recomp basePointer: " + basePointer.ToString("X16"));
-                print("ps3recomp productPointer: " + productPointer.ToString("X16"));
+                vars.isBigEndian = true;
+                vars.console = "PS3";
+
+                // Prevent debugger spam
+                if (basePointer != IntPtr.Zero)
+                {
+                    print("ps3recomp basePointer: " + basePointer.ToString("X16"));
+                    print("ps3recomp productPointer: " + productPointer.ToString("X16"));
+                }
                 break;
 
             default:
@@ -1124,7 +1121,7 @@ init
 
                 vars.isBigEndian = false;
                 vars.console = String.Empty;
-                
+
                 print("default basePointer: " + basePointer.ToString("X8"));
                 print("default productPointer: " + productPointer.ToString("X8"));
                 break;
@@ -1181,9 +1178,9 @@ init
                 }
                 break;
             case "rpcs3":
-            case "mygamerecomp":
-            case "mygamerecomp_jp":
-            case "mygamerecomp_us":
+            case "codeveronicaport":
+            case "codeveronicaport_jp":
+            case "codeveronicaport_us":
                 return memory.ReadString(pointer, 9);
         }
 

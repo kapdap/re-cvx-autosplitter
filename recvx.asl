@@ -1224,7 +1224,7 @@ init
         current.loading = vars.BitCheck(current.door, 0);
         current.igt = vars.isBigEndian ? (int)vars.SwapBytesInt(time) : (int)time;
 
-        if (current.loading)
+        if (settings["FRT"] && current.loading)
         {
             int delta = current.igt - current.time - current.delta;
             if (delta > 0)

@@ -947,15 +947,15 @@ init
     vars.UpdateDoorSplit = (Func<int, int, bool>)((id, prevId) => {
         if (
              settings["basicSplits"] ||
-            (settings["anySplits"]       && vars.anySplits[vars.doorsIndex] == id)      ||
-            (settings["anySplitsDS"]     && vars.anySplitsDS[vars.doorsIndex] == id)    ||
-            (settings["rocketSplits"]    && vars.rocketSplits[vars.doorsIndex] == id)   ||
-            (settings["rocketSplitsDS"]  && vars.rocketSplitsDS[vars.doorsIndex] == id) ||
-            (settings["knifeSplits"]     && vars.knifeSplits[vars.doorsIndex] == id)    ||
-            (settings["knifeSplitsDS"]   && vars.knifeSplitsDS[vars.doorsIndex] == id)  ||
-            (settings["srankSplits"]     && vars.srankSplits[vars.doorsIndex] == id)    ||
-            (settings["srankSplitsDS"]   && vars.srankSplitsDS[vars.doorsIndex] == id)  ||
-            (settings["srankSplitsDSGL"] && vars.srankSplitsDSGL[vars.doorsIndex] == id)
+            (settings["anySplits"]       && vars.doorsIndex < vars.anySplits.Count       && vars.anySplits[vars.doorsIndex] == id)      ||
+            (settings["anySplitsDS"]     && vars.doorsIndex < vars.anySplitsDS.Count     && vars.anySplitsDS[vars.doorsIndex] == id)    ||
+            (settings["rocketSplits"]    && vars.doorsIndex < vars.rocketSplits.Count    && vars.rocketSplits[vars.doorsIndex] == id)   ||
+            (settings["rocketSplitsDS"]  && vars.doorsIndex < vars.rocketSplitsDS.Count  && vars.rocketSplitsDS[vars.doorsIndex] == id) ||
+            (settings["knifeSplits"]     && vars.doorsIndex < vars.knifeSplits.Count     && vars.knifeSplits[vars.doorsIndex] == id)    ||
+            (settings["knifeSplitsDS"]   && vars.doorsIndex < vars.knifeSplitsDS.Count   && vars.knifeSplitsDS[vars.doorsIndex] == id)  ||
+            (settings["srankSplits"]     && vars.doorsIndex < vars.srankSplits.Count     && vars.srankSplits[vars.doorsIndex] == id)    ||
+            (settings["srankSplitsDS"]   && vars.doorsIndex < vars.srankSplitsDS.Count   && vars.srankSplitsDS[vars.doorsIndex] == id)  ||
+            (settings["srankSplitsDSGL"] && vars.doorsIndex < vars.srankSplitsDSGL.Count && vars.srankSplitsDSGL[vars.doorsIndex] == id)
         )
         {
             vars.LogSplit("Door " + prevId + " to " + id);

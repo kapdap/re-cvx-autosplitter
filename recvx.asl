@@ -126,7 +126,8 @@ startup
     vars.BitCheck = new Func<byte, int, bool>((byte val, int b) => (val & (1 << b)) != 0);
 
     settings.Add("time", true, "Timing Methods");
-    settings.Add("LRT", false, "Load Remover Time", "time");
+    settings.Add("FRT", false, "Load Remover Time (Game Time)", "time");
+    settings.Add("LRT", false, "Load Remover Time (Real Time)", "time");
     settings.SetToolTip("LRT", "Removes door load time");
 
     settings.Add("doorSplits", true, "Doors (Only enable 1 option)");
@@ -1210,7 +1211,6 @@ init
 
         current.slot = 0; // Inventory slot number of the equipped item
         current.ammo = 0; // Ammo count for the equipped weapon
-        current.time = vars.isBigEndian ? (int)vars.SwapBytesInt(time) : (int)time;
         current.room = vars.SwapBytes(room); // Room bytes always need to be swapped
         current.screen = screen;
         current.health = vars.isBigEndian ? (int)vars.SwapBytesInt(health) : (int)health;
@@ -1221,6 +1221,19 @@ init
         current.enemy = vars.isBigEndian ? (short)vars.SwapBytes(enemy) : (short)enemy;
         current.killed = new bool[vars.killedSplits.Count]; // Killed enemy flags
         current.events = new bool[vars.eventsSplits.Count]; // Events flags
+        current.loading = vars.BitCheck(current.door, 0);
+        current.igt = vars.isBigEndian ? (int)vars.SwapBytesInt(time) : (int)time;
+
+        if (current.loading)
+        {
+            int delta = current.igt - current.time - current.delta;
+            if (delta > 0)
+                current.delta += delta;
+        }
+        else
+        {
+            current.time = current.igt - current.delta;
+        }
 
         // Check status for gassed or poison flags
         if ((status & 0x20) != 0)
@@ -1274,6 +1287,7 @@ init
     });
 
     // Initialise values
+    current.delta = 0;
     vars.UpdateProduct();
     vars.UpdateValues();
 }
@@ -1286,6 +1300,9 @@ start
 
 update
 {
+    if (current.time < old.time)
+        current.delta = 0;
+
     vars.UpdateProduct();
     vars.UpdateValues();
 

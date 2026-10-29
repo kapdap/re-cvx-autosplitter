@@ -53,6 +53,7 @@ GameCube releases:
 
 ## Acknowledgements
 
+- [uTrance](https://www.twitch.tv/uhtrance/) - LRT improvements, testing, bug fixes.
 - [Kastiel](https://github.com/kastieloficial/) - PS3 static recomp and support.
 - [TheDementedSalad](https://www.twitch.tv/thedementedsalad) - Load remover time support.
 - [redshines](https://www.twitch.tv/redshines) - Door split routes and testing.

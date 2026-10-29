@@ -1064,10 +1064,18 @@ init
 
             case "pcsx2-qtx64": // PCSX2 1.7+
             case "pcsx2-qt": // PCSX2 2.4.0+
-                IntPtr eemem = vars.ReadExport(game.MainModule.BaseAddress, "EEmem");
+                try
+                {
+                    IntPtr eemem = vars.ReadExport(game.ModulesWow64Safe()[0].BaseAddress, "EEmem");
 
-                basePointer = eemem != IntPtr.Zero ? (IntPtr)memory.ReadValue<long>(eemem) : IntPtr.Zero;
-                productPointer = basePointer;
+                    basePointer = eemem != IntPtr.Zero ? (IntPtr)memory.ReadValue<long>(eemem) : IntPtr.Zero;
+                    productPointer = basePointer;
+                }
+                catch
+                {
+                    basePointer = IntPtr.Zero;
+                    productPointer = IntPtr.Zero;
+                }
 
                 vars.isBigEndian = false;
                 vars.console = "PS2";
@@ -1090,8 +1098,19 @@ init
             case "codeveronicaport":
             case "codeveronicaport_jp":
             case "codeveronicaport_us":
-                IntPtr marker = vars.ReadExport(game.MainModule.BaseAddress, "g_cv_livesplit");
-                IntPtr basept = marker != IntPtr.Zero ? (IntPtr)memory.ReadValue<long>(IntPtr.Add(marker, 0x10)) : IntPtr.Zero;
+                IntPtr marker = IntPtr.Zero;
+                IntPtr basept = IntPtr.Zero;
+
+                try
+                {
+                    marker = vars.ReadExport(game.ModulesWow64Safe()[0].BaseAddress, "g_cv_livesplit");
+                    basept = marker != IntPtr.Zero ? (IntPtr)memory.ReadValue<long>(IntPtr.Add(marker, 0x10)) : IntPtr.Zero;
+                }
+                catch
+                {
+                    marker = IntPtr.Zero;
+                    basept = IntPtr.Zero;
+                }
 
                 // Base is zero until the game has reserved its memory, retry on next update
                 if (memory.ReadString(marker, 13) == "PS3RECOMP-CVX" && basept != IntPtr.Zero)

@@ -125,10 +125,11 @@ startup
     // Checks if a specific bit in value is set
     vars.BitCheck = new Func<byte, int, bool>((byte val, int b) => (val & (1 << b)) != 0);
 
-    settings.Add("time", true, "Timing Methods");
+    settings.Add("time", true, "Timing Methods (Only enable 1 option)");
     settings.Add("FRT", false, "Load Remover Time (Game Time)", "time");
+    settings.SetToolTip("FRT", "Removes door load time based on the in-game time");
     settings.Add("LRT", false, "Load Remover Time (Real Time)", "time");
-    settings.SetToolTip("LRT", "Removes door load time");
+    settings.SetToolTip("LRT", "Removes door load time based on the real time");
 
     settings.Add("doorSplits", true, "Doors (Only enable 1 option)");
     settings.SetToolTip("doorSplits", "Enables door splits for the selected route");
@@ -1243,6 +1244,9 @@ init
         current.loading = vars.BitCheck(current.door, 0);
         current.igt = vars.isBigEndian ? (int)vars.SwapBytesInt(time) : (int)time;
 
+        if (current.igt == 0)
+            current.delta = 0;
+
         if (settings["FRT"] && current.loading)
         {
             int delta = current.igt - current.time - current.delta;
@@ -1447,12 +1451,12 @@ split
 
 gameTime
 {
-    if (!settings["LRT"])
-        // Seconds = IGT / 60
-        return TimeSpan.FromSeconds(current.time / 60.0);
+    if (settings["LRT"] && !settings["FRT"])
+        return;
+    return TimeSpan.FromSeconds(current.time / 60.0);
 }
 
 isLoading
 {
-    return settings["LRT"] ? vars.BitCheck(current.door, 0) : true;
+    return settings["LRT"] && !settings["FRT"] ? vars.BitCheck(current.door, 0) : true;
 }

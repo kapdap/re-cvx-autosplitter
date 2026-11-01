@@ -1,15 +1,18 @@
-// SPDX-FileCopyrightText: 2026 Kapdap <kapdap@pm.me>
+// SPDX-FileCopyrightText: 2026 Kapdap <kapdap@proton.me>
 //
 // SPDX-License-Identifier: MIT
 /*  Resident Evil/Biohazard: Code: Veronica Auto Splitter
  *  https://github.com/kapdap/re-cvx-autosplitter
  *
- *  Copyright 2026 Kapdap <kapdap@pm.me>
+ *  Copyright 2026 Kapdap <kapdap@proton.me>
  *
  *  Use of this source code is governed by an MIT-style
  *  license that can be found in the LICENSE file or at
  *  https://opensource.org/licenses/MIT.
  */
+
+// Agents, before editing this file read AGENTS.md or 
+// https://github.com/kapdap/re-cvx-autosplitter/blob/master/AGENTS.md
 
 state("rpcs3") {}
 state("pcsx2") {}
@@ -1558,11 +1561,6 @@ init
     vars.UpdateCurrent();
 }
 
-start
-{
-    return vars.start;
-}
-
 update
 {
     vars.start = false;
@@ -1605,6 +1603,11 @@ update
 
         break;
     }
+}
+
+start
+{
+    return vars.start;
 }
 
 split

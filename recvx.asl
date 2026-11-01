@@ -358,6 +358,13 @@ init
     IntPtr killedPtr = IntPtr.Zero;
     IntPtr eventsPtr = IntPtr.Zero;
 
+    object sync = new object(); // Guards reader state below
+    bool stopReader = false; // Tells the reader thread to exit
+    var pending = new Queue<ExpandoObject>(); // State changes, oldest first
+    dynamic last = new ExpandoObject(); // Last computed time and delta, for the delta step
+    last.delta = 0;
+    last.time = -1;
+
     vars.lastSplit = String.Empty; // Name of the most recent split
     vars.productCode = String.Empty; // Used to detect when the game release has changed
     vars.isBigEndian = false; // Console uses big endian (e.g. PS3 and GCN)
@@ -1208,8 +1215,40 @@ init
         return String.Empty;
     });
 
-    // Updates game values
-    vars.UpdateValues = (Action) (() => {
+    // Stops the reader thread
+    vars.StopReader = (Action)(() => {
+        lock (sync) stopReader = true;
+    });
+
+    // Oldest queued change or null
+    vars.NextChange = (Func<ExpandoObject>)(() => {
+        lock (sync) return pending.Count > 0 ? pending.Dequeue() : null;
+    });
+
+    // Reads one snapshot of the values split looks at
+    // Default state when memory reads fail
+    vars.DefaultState = (Func<ExpandoObject>)(() => {
+        dynamic state = new ExpandoObject();
+        state.slot = 0; // Inventory slot number of the equipped item
+        state.ammo = 0; // Ammo count for the equipped weapon
+        state.room = 0;
+        state.screen = 0;
+        state.health = 0;
+        state.status = "Normal";
+        state.character = 0;
+        state.inventory = new byte[11]; // Current characters inventory
+        state.door = 0;
+        state.loading = false;
+        state.enemy = 0;
+        state.killed = new bool[vars.killedSplits.Count]; // Killed enemy flags
+        state.events = new bool[vars.eventsSplits.Count]; // Events flags
+        state.igt = 0;
+        state.delta = 0;
+        state.time = 0;
+        return (ExpandoObject)state;
+    });
+
+    vars.ReadState = (Func<ExpandoObject>)(() => {
         uint time = 0; // In Game Timer
         ushort room = 0; // Room the character is in
         byte screen = 0; // Current game screen
@@ -1219,117 +1258,337 @@ init
         byte door = 0; // Current status of door for load remover time
         ushort enemy = 0; // Enemy type
 
-        // Read values from memory
-        memory.ReadValue<uint>(timePtr, out time);
-        memory.ReadValue<ushort>(roomPtr, out room);
-        memory.ReadValue<byte>(screenPtr, out screen);
-        memory.ReadValue<uint>(healthPtr, out health);
-        memory.ReadValue<byte>(statusPtr, out status);
-        memory.ReadValue<byte>(characterPtr, out character);
-        memory.ReadValue<byte>(doorFlagPtr, out door);
-        memory.ReadValue<ushort>(IntPtr.Add(enemyPtr, 0x4), out enemy);
+        if (timePtr == IntPtr.Zero || roomPtr == IntPtr.Zero || screenPtr == IntPtr.Zero)
+            return vars.DefaultState();
 
-        current.slot = 0; // Inventory slot number of the equipped item
-        current.ammo = 0; // Ammo count for the equipped weapon
-        current.room = vars.SwapBytes(room); // Room bytes always need to be swapped
-        current.screen = screen;
-        current.health = vars.isBigEndian ? (int)vars.SwapBytesInt(health) : (int)health;
-        current.status = "Normal";
-        current.character = character;
-        current.inventory = new byte[11]; // Current characters inventory
-        current.door = door;
-        current.enemy = vars.isBigEndian ? (short)vars.SwapBytes(enemy) : (short)enemy;
-        current.killed = new bool[vars.killedSplits.Count]; // Killed enemy flags
-        current.events = new bool[vars.eventsSplits.Count]; // Events flags
-        current.loading = vars.BitCheck(current.door, 0);
-        current.igt = vars.isBigEndian ? (int)vars.SwapBytesInt(time) : (int)time;
-
-        if (current.igt == 0)
-            current.delta = 0;
-
-        if (settings["FRT"] && current.loading)
+        try
         {
-            int delta = current.igt - current.time - current.delta;
-            if (delta > 0)
-                current.delta += delta;
+            memory.ReadValue<uint>(timePtr, out time);
+            memory.ReadValue<ushort>(roomPtr, out room);
+            memory.ReadValue<byte>(screenPtr, out screen);
+            memory.ReadValue<uint>(healthPtr, out health);
+            memory.ReadValue<byte>(statusPtr, out status);
+            memory.ReadValue<byte>(characterPtr, out character);
+            memory.ReadValue<byte>(doorFlagPtr, out door);
+            memory.ReadValue<ushort>(IntPtr.Add(enemyPtr, 0x4), out enemy);
         }
-        else
+        catch
         {
-            current.time = current.igt - current.delta;
+            return vars.DefaultState();
+        }
+
+        dynamic state = new ExpandoObject();
+        state.slot = 0; // Inventory slot number of the equipped item
+        state.ammo = 0; // Ammo count for the equipped weapon
+        state.room = vars.SwapBytes(room); // Room bytes always need to be swapped
+        state.screen = screen;
+        state.health = vars.isBigEndian ? (int)vars.SwapBytesInt(health) : (int)health;
+        state.status = "Normal";
+        state.character = character;
+        state.inventory = new byte[11]; // Current characters inventory
+        state.door = door;
+        state.loading = vars.BitCheck(door, 0);
+        state.enemy = vars.isBigEndian ? (short)vars.SwapBytes(enemy) : (short)enemy;
+        state.killed = new bool[vars.killedSplits.Count]; // Killed enemy flags
+        state.events = new bool[vars.eventsSplits.Count]; // Events flags
+        state.igt = vars.isBigEndian ? (int)vars.SwapBytesInt(time) : (int)time;
+
+        lock (sync)
+        {
+            if (state.igt == 0)
+                last.delta = 0;
+
+            if (settings["FRT"] && last.time >= 0 && state.loading)
+            {
+                int add = state.igt - last.time - last.delta;
+                if (add > 0)
+                    last.delta += add;
+            }
+
+            if (state.igt - last.delta < last.time)
+                last.delta = 0;
+
+            state.delta = last.delta;
+            state.time = state.igt - state.delta;
+            last.time = state.time;
         }
 
         // Check status for gassed or poison flags
         if ((status & 0x20) != 0)
-            current.status = "Gassed";
+            state.status = "Gassed";
         else if ((status & 0x08) != 0)
-            current.status = "Poison";
+            state.status = "Poison";
 
         int index = -1; // Inventory array index
 
         // Pointer to the current characters inventory table
         IntPtr pointer = IntPtr.Add(inventoryPtr, (character * 0x40));
 
-        // Read inventory of the current character
-        for (int i = 0; i < 12; ++i)
+        try
         {
-            uint item = 0; // Inventory entry
-
-            // Read inventory entry from memory
-            memory.ReadValue<uint>(pointer, out item);
-
-            // Move pointer to the next entry
-            pointer = IntPtr.Add(pointer, 0x4);
-
-            // Convert to little endian if the console uses big endian
-            item = vars.isBigEndian ? vars.SwapBytesInt(item) : item;
-
-            // First entry is the slot number of the equipped item
-            if (i == 0)
+            // Read inventory of the current character
+            for (int i = 0; i < 12; ++i)
             {
-                current.slot = item;
-                continue;
+                uint item = 0; // Inventory entry
+
+                // Read inventory entry from memory
+                memory.ReadValue<uint>(pointer, out item);
+
+                // Move pointer to the next entry
+                pointer = IntPtr.Add(pointer, 0x4);
+
+                // Convert to little endian if the console uses big endian
+                item = vars.isBigEndian ? vars.SwapBytesInt(item) : item;
+
+                // First entry is the slot number of the equipped item
+                if (i == 0)
+                {
+                    state.slot = item;
+                    continue;
+                }
+
+                // Remaing entries are inventory items
+                byte[] bytes = BitConverter.GetBytes(item);
+
+                // Set inventory index to the item ID
+                state.inventory[++index] = bytes[2];
+
+                // Read quantity if this item is equipped
+                if (state.slot == (index + 1))
+                    state.ammo = BitConverter.ToInt16(bytes, 0);
             }
 
-            // Remaing entries are inventory items
-            byte[] bytes = BitConverter.GetBytes(item);
+            foreach(int i in vars.killedMap.Keys)
+                state.killed[i] = vars.ReadFlag(killedPtr, vars.killedMap[i]);
 
-            // Set inventory index to the item ID
-            current.inventory[++index] = bytes[2];
-
-            // Read quantity if this item is equipped
-            if (current.slot == (index + 1))
-                current.ammo = BitConverter.ToInt16(bytes, 0);
+            foreach(int i in vars.eventsMap.Keys)
+                state.events[i] = vars.ReadFlag(eventsPtr, vars.eventsMap[i]);
+        }
+        catch
+        {
+            return vars.DefaultState();
         }
 
-        foreach(int i in vars.killedMap.Keys) {
-            current.killed[i] = vars.ReadFlag(killedPtr, vars.killedMap[i]);
-        }
-
-        foreach(int i in vars.eventsMap.Keys)
-            current.events[i] = vars.ReadFlag(eventsPtr, vars.eventsMap[i]);
+        return (ExpandoObject)state;
     });
 
+    // Updates game values
+    vars.UpdateValues = (Action) (() => {
+        dynamic state = vars.ReadState();
+        current.slot = state.slot; // Inventory slot number of the equipped item
+        current.ammo = state.ammo; // Ammo count for the equipped weapon
+        current.room = state.room;
+        current.screen = state.screen;
+        current.health = state.health;
+        current.status = state.status;
+        current.character = state.character;
+        current.inventory = state.inventory; // Current characters inventory
+        current.door = state.door;
+        current.enemy = state.enemy;
+        current.killed = state.killed; // Killed enemy flags
+        current.events = state.events; // Events flags
+        current.loading = state.loading;
+        current.igt = state.igt;
+        current.delta = state.delta;
+        current.time = state.time;
+    });
+
+    // Start when IGT is 0, in the Prison Cell room and the 1st item slot contains the Lighter
+    vars.CheckStart = (Func<dynamic, bool>)((state) => state.time == 0 && state.room == 0 && state.inventory[0] == 0x37);
+
+    // Split conditions for one state change
+    vars.CheckSplit = (Func<dynamic, dynamic, bool>)((cur, prev) => {
+        bool split = false;
+
+        // End Game Rank Screen
+        if (cur.screen == 0x04)
+            return vars.UpdateSplit("endGame");
+
+        // Split when an inventory entry changes
+        for (int i = 0; i < cur.inventory.Length; i++)
+        {
+            byte item = cur.inventory[i];
+
+            // Continue if the entry has not changed
+            if (item == prev.inventory[i]) continue;
+
+            switch (item)
+            {
+                // Items picked up more than once are tracked by the room they are found in
+                case 0x08: // Combat Knife
+                    if (cur.room == 0x0000) // Prison B1 Cells
+                        // Prevents splitting when changing to Chris if the knife is skipped in the prison cells
+                        return vars.UpdateSplit("combatKnife");
+                    break;
+
+                case 0x22: // Sub Machine Gun
+                    if (cur.room == 0x030A) // Military Training Facility Warehouse
+                        return vars.UpdateSplit("subMachineGun");
+
+                    if (cur.room == 0x0716) // Military Training Facility B3 Cave
+                        return vars.UpdateSplit("subMachineGunChris");
+                    break;
+
+                case 0x47: // Air Force Proof
+                    if (cur.room == 0x0207) // Private Residence 4F Private Study
+                        return vars.UpdateSplit("airForceProof");
+
+                    if (cur.room == 0x0801) // Airport Bridge
+                        return vars.UpdateSplit("airForceProofChris");
+                    break;
+
+                case 0x4E: // Music Box Plate
+                    if (cur.room == 0x0205) // Private Residence 2F Alexias Bedroom
+                        return vars.UpdateSplit("musicBoxPlate");
+
+                    if (cur.room == 0x0918) // Antartic Transport Terminal B4 Alexias Bedroom
+                        return vars.UpdateSplit("musicBoxPlateChris");
+                    break;
+
+                case 0x58: // Octo Valve Handle
+                    if (cur.room == 0x0602) // Antartic Transport Terminal B1 Tool Storeroom
+                        return vars.UpdateSplit("octaValveHandle");
+
+                    if (cur.room == 0x0906) // Antartic Transport Terminal B1 Mining Room
+                        return vars.UpdateSplit("octaValveHandleChris");
+                    break;
+
+                case 0x38: // Eagle Plate
+                    if (cur.room == 0x0304) // Military Training Facility 1F Diorama Room
+                        return vars.UpdateSplit("eaglePlateDiorama");
+
+                    if (cur.room == 0x0106) // Palace 1F Umbrella Meeting Room
+                        return vars.UpdateSplit("eaglePlateUmbrella");
+
+                    if (cur.room == 0x070A) // Military Training Facility B2 Water Pool
+                        return vars.UpdateSplit("eaglePlateWaterPool");
+                    break;
+
+                default: // Split the first time an item is added to the inventory
+                    if (vars.itemSplits.ContainsKey(item))
+                        split = split || vars.UpdateItemSplit(item);
+                    break;
+            }
+        }
+
+        // Change to the next room
+        if (cur.room != prev.room)
+        {
+            if (vars.doorsEnabled)
+                split = split || vars.UpdateDoorSplit(cur.room, prev.room);
+            else
+            {
+                if (cur.room == 0x0501) // Transport Plane Cargo Hold
+                    split = split || vars.UpdateSplit("tyrantPlane");
+
+                if (cur.room == 0x0600) // Antartic Transport Terminal B1 Silo
+                    split = split || vars.UpdateSplit("antarcticaBase");
+
+                if (cur.room == 0x060A) // Antartic Transport Terminal 1F Helipad
+                    split = split || vars.UpdateSplit("nosferatuFight");
+
+                if (cur.room == 0x0716) // Military Training Facility B3 Cave
+                    split = split || vars.UpdateSplit("startChris");
+            }
+        }
+
+        if (cur.enemy != prev.enemy && cur.enemy == 13)
+            split = split || vars.UpdateSplit("alexia2Spawned");
+
+        foreach(int i in vars.killedMap.Keys)
+            if (cur.killed[i] != prev.killed[i] && cur.killed[i])
+                split = split || vars.UpdateKilledSplit(vars.killedMap[i]);
+
+        foreach(int i in vars.eventsMap.Keys)
+            if (cur.events[i] != prev.events[i] && cur.events[i])
+                split = split || vars.UpdateEventsSplit(vars.eventsMap[i]);
+
+        return split;
+    });
+
+    vars.startNow = false; // Start this tick
+    vars.splitNow = false; // Split this tick
+    vars.changes = null; // Last queued change seen
+
+    var reader = new System.Threading.Thread(() => {
+        dynamic prev = null;
+        while (true)
+        {
+            lock (sync)
+            {
+                if (stopReader)
+                    break;
+            }
+
+            if (game.HasExited)
+                break;
+
+            long timestamp = System.Diagnostics.Stopwatch.GetTimestamp();
+
+            dynamic state = vars.ReadState();
+
+            try
+            {
+                bool changed = prev == null ||
+                    state.room != prev.room ||
+                    state.enemy != prev.enemy ||
+                    state.screen != prev.screen ||
+                    (state.igt == 0) != (prev.igt == 0);
+
+                if (!changed)
+                {
+                    for (int i = 0; i < 11 && !changed; ++i)
+                        changed = state.inventory[i] != prev.inventory[i];
+                }
+
+                if (!changed)
+                {
+                    for (int i = 0; i < state.killed.Length && !changed; ++i)
+                        changed = state.killed[i] != prev.killed[i];
+                    for (int i = 0; i < state.events.Length && !changed; ++i)
+                        changed = state.events[i] != prev.events[i];
+                }
+
+                if (changed)
+                {
+                    lock (sync)
+                    {
+                        if (pending.Count < 100000)
+                            pending.Enqueue((ExpandoObject)state);
+                    }
+                    prev = state;
+                }
+            }
+            catch (Exception ex) { print("recvx reader: " + ex.Message); }
+
+            long next = timestamp + System.Diagnostics.Stopwatch.Frequency / 1000;
+            while (System.Diagnostics.Stopwatch.GetTimestamp() < next)
+                System.Threading.Thread.Yield();
+        }
+    });
+    reader.IsBackground = true;
+    reader.Start();
+
     // Initialise values
-    current.delta = 0;
     vars.UpdateProduct();
     vars.UpdateValues();
 }
 
 start
 {
-    // Start when IGT is 0, in the Prison Cell room and the 1st item slot contains the Lighter
-    return (current.time == 0 && current.room == 0 && current.inventory[0] == 0x37);
+    return vars.startNow;
 }
 
 update
 {
-    if (current.time < old.time)
-        current.delta = 0;
+    vars.startNow = false;
+    vars.splitNow = false;
 
     vars.UpdateProduct();
     vars.UpdateValues();
 
-    if (timer.CurrentPhase == TimerPhase.NotRunning)
+    TimerPhase phase = timer.CurrentPhase;
+    if (phase == TimerPhase.NotRunning)
     {
         vars.ResetSplits();
         vars.ResetDoorSplits();
@@ -1337,116 +1596,34 @@ update
         vars.ResetKilledSplits();
         vars.ResetEventsSplits();
     }
+
+    // Replay the state changes since the last tick, in order
+    for (dynamic state = vars.NextChange(); state != null; state = vars.NextChange())
+    {
+        dynamic prev = vars.changes;
+        vars.changes = state;
+
+        if (prev == null || phase == TimerPhase.Ended)
+            continue;
+
+        bool starting = phase == TimerPhase.NotRunning;
+        bool match = starting
+            ? vars.CheckStart(state)
+            : vars.CheckSplit(state, prev);
+
+        if (!match)
+            continue;
+
+        vars.startNow = starting;
+        vars.splitNow = !starting;
+        current.time = state.time;
+        break;
+    }
 }
 
 split
 {
-    bool split = false;
-
-    // End Game Rank Screen
-    if (current.screen == 0x04)
-        return vars.UpdateSplit("endGame");
-
-    // Split when an inventory entry changes
-    for (int i = 0; i < current.inventory.Length; i++)
-    {
-        byte item = current.inventory[i];
-
-        // Continue if the entry has not changed
-        if (item == old.inventory[i]) continue;
-
-        switch (item)
-        {
-            // Items picked up more than once are tracked by the room they are found in
-            case 0x08: // Combat Knife
-                if (current.room == 0x0000) // Prison B1 Cells
-                    // Prevents splitting when changing to Chris if the knife is skipped in the prison cells
-                    return vars.UpdateSplit("combatKnife");
-                break;
-
-            case 0x22: // Sub Machine Gun
-                if (current.room == 0x030A) // Military Training Facility Warehouse
-                    return vars.UpdateSplit("subMachineGun");
-
-                if (current.room == 0x0716) // Military Training Facility B3 Cave
-                    return vars.UpdateSplit("subMachineGunChris");
-                break;
-
-            case 0x47: // Air Force Proof
-                if (current.room == 0x0207) // Private Residence 4F Private Study
-                    return vars.UpdateSplit("airForceProof");
-
-                if (current.room == 0x0801) // Airport Bridge
-                    return vars.UpdateSplit("airForceProofChris");
-                break;
-
-            case 0x4E: // Music Box Plate
-                if (current.room == 0x0205) // Private Residence 2F Alexias Bedroom
-                    return vars.UpdateSplit("musicBoxPlate");
-
-                if (current.room == 0x0918) // Antartic Transport Terminal B4 Alexias Bedroom
-                    return vars.UpdateSplit("musicBoxPlateChris");
-                break;
-
-            case 0x58: // Octo Valve Handle
-                if (current.room == 0x0602) // Antartic Transport Terminal B1 Tool Storeroom
-                    return vars.UpdateSplit("octaValveHandle");
-
-                if (current.room == 0x0906) // Antartic Transport Terminal B1 Mining Room
-                    return vars.UpdateSplit("octaValveHandleChris");
-                break;
-
-            case 0x38: // Eagle Plate
-                if (current.room == 0x0304) // Military Training Facility 1F Diorama Room
-                    return vars.UpdateSplit("eaglePlateDiorama");
-
-                if (current.room == 0x0106) // Palace 1F Umbrella Meeting Room
-                    return vars.UpdateSplit("eaglePlateUmbrella");
-
-                if (current.room == 0x070A) // Military Training Facility B2 Water Pool
-                    return vars.UpdateSplit("eaglePlateWaterPool");
-                break;
-
-            default: // Split the first time an item is added to the inventory
-                if (vars.itemSplits.ContainsKey(item))
-                    split = split || vars.UpdateItemSplit(item);
-                break;
-        }
-    }
-
-    // Change to the next room
-    if (current.room != old.room)
-    {
-        if (vars.doorsEnabled)
-            split = split || vars.UpdateDoorSplit(current.room, old.room);
-        else
-        {
-            if (current.room == 0x0501) // Transport Plane Cargo Hold
-                split = split || vars.UpdateSplit("tyrantPlane");
-
-            if (current.room == 0x0600) // Antartic Transport Terminal B1 Silo
-                split = split || vars.UpdateSplit("antarcticaBase");
-
-            if (current.room == 0x060A) // Antartic Transport Terminal 1F Helipad
-                split = split || vars.UpdateSplit("nosferatuFight");
-
-            if (current.room == 0x0716) // Military Training Facility B3 Cave
-                split = split || vars.UpdateSplit("startChris");
-        }
-    }
-
-    if (current.enemy != old.enemy && current.enemy == 13)
-        split = split || vars.UpdateSplit("alexia2Spawned");
-
-    foreach(int i in vars.killedMap.Keys)
-        if (current.killed[i] != old.killed[i] && current.killed[i])
-            split = split || vars.UpdateKilledSplit(vars.killedMap[i]);
-
-    foreach(int i in vars.eventsMap.Keys)
-        if (current.events[i] != old.events[i] && current.events[i])
-            split = split || vars.UpdateEventsSplit(vars.eventsMap[i]);
-
-    return split;
+    return vars.splitNow;
 }
 
 gameTime
@@ -1459,4 +1636,15 @@ gameTime
 isLoading
 {
     return settings["LRT"] && !settings["FRT"] ? vars.BitCheck(current.door, 0) : true;
+}
+
+exit
+{
+    vars.StopReader();
+}
+
+shutdown
+{
+    if (((IDictionary<string, object>)vars).ContainsKey("StopReader"))
+        vars.StopReader();
 }

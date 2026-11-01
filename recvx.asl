@@ -358,9 +358,10 @@ init
     IntPtr killedPtr = IntPtr.Zero;
     IntPtr eventsPtr = IntPtr.Zero;
 
-    object sync = new object(); // Guards thread state below
-    var pending = new Queue<ExpandoObject>(); // State changes, oldest first
-    dynamic last = new ExpandoObject(); // Last computed time and delta, for the delta step
+    object sync = new object(); // Thread state lock
+    var queue = new Queue<ExpandoObject>(); // Split queue, oldest first
+
+    dynamic last = new ExpandoObject(); // Last computed time and delta
     last.delta = 0;
     last.time = -1;
 
@@ -1321,44 +1322,37 @@ init
 
         int index = -1; // Inventory array index
 
-        try
+        // Decode inventory of the current character
+        for (int i = 0; i < 12; ++i)
         {
-            // Decode inventory of the current character
-            for (int i = 0; i < 12; ++i)
+            uint item = BitConverter.ToUInt32(inventory, i * 4); // Inventory entry
+
+            // Convert to little endian if the console uses big endian
+            item = vars.isBigEndian ? vars.SwapBytesInt(item) : item;
+
+            // First entry is the slot number of the equipped item
+            if (i == 0)
             {
-                uint item = BitConverter.ToUInt32(inventory, i * 4); // Inventory entry
-
-                // Convert to little endian if the console uses big endian
-                item = vars.isBigEndian ? vars.SwapBytesInt(item) : item;
-
-                // First entry is the slot number of the equipped item
-                if (i == 0)
-                {
-                    state.slot = item;
-                    continue;
-                }
-
-                // Remaing entries are inventory items
-                byte[] bytes = BitConverter.GetBytes(item);
-
-                // Set inventory index to the item ID
-                state.inventory[++index] = bytes[2];
-
-                // Read quantity if this item is equipped
-                if (state.slot == (index + 1))
-                    state.ammo = BitConverter.ToInt16(bytes, 0);
+                state.slot = item;
+                continue;
             }
 
-            foreach(int i in vars.killedMap.Keys)
-                state.killed[i] = vars.CheckFlag(killed, vars.killedMap[i]);
+            // Remaing entries are inventory items
+            byte[] bytes = BitConverter.GetBytes(item);
 
-            foreach(int i in vars.eventsMap.Keys)
-                state.events[i] = vars.CheckFlag(events, vars.eventsMap[i]);
+            // Set inventory index to the item ID
+            state.inventory[++index] = bytes[2];
+
+            // Read quantity if this item is equipped
+            if (state.slot == (index + 1))
+                state.ammo = BitConverter.ToInt16(bytes, 0);
         }
-        catch
-        {
-            return vars.DefaultState();
-        }
+
+        foreach(int i in vars.killedMap.Keys)
+            state.killed[i] = vars.CheckFlag(killed, vars.killedMap[i]);
+
+        foreach(int i in vars.eventsMap.Keys)
+            state.events[i] = vars.CheckFlag(events, vars.eventsMap[i]);
 
         return (ExpandoObject)state;
     });
@@ -1501,7 +1495,7 @@ init
 
     // Return oldest queued change or null
     vars.NextChange = (Func<ExpandoObject>)(() => {
-        lock (sync) return pending.Count > 0 ? pending.Dequeue() : null;
+        lock (sync) return queue.Count > 0 ? queue.Dequeue() : null;
     });
 
     // Stops the background thread
@@ -1512,7 +1506,7 @@ init
 
     // Stalls on the LiveSplit UI thread can cause timing issues, such as delayed splits
     // and missed door transitions. Poll game memory on a separate thread so state changes
-    // are never missed. Splits are queued and replayed in order in update with exact timing.
+    // are never missed. Splits are queued and replayed in order in `update` with exact timing.
     var thread = new System.Threading.Thread(() => {
         dynamic prev = null;
         while (true)
@@ -1547,8 +1541,8 @@ init
             {
                 lock (sync)
                 {
-                    if (pending.Count < 1024)
-                        pending.Enqueue((ExpandoObject)state);
+                    if (queue.Count < 1024)
+                        queue.Enqueue((ExpandoObject)state);
                 }
                 prev = state;
             }
@@ -1596,16 +1590,17 @@ update
         if (prev == null || phase == TimerPhase.Ended)
             continue;
 
-        bool starting = phase == TimerPhase.NotRunning;
-        bool match = starting
+        bool start = phase == TimerPhase.NotRunning;
+        bool match = start
             ? vars.CheckStart(state)
             : vars.CheckSplit(state, prev);
 
         if (!match)
             continue;
 
-        vars.start = starting;
-        vars.split = !starting;
+        vars.start = start;
+        vars.split = !start;
+
         current.time = state.time;
 
         break;

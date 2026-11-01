@@ -358,12 +358,15 @@ init
     IntPtr killedPtr = IntPtr.Zero;
     IntPtr eventsPtr = IntPtr.Zero;
 
-    object sync = new object(); // Guards reader state below
-    bool stopReader = false; // Tells the reader thread to exit
+    object sync = new object(); // Guards thread state below
     var pending = new Queue<ExpandoObject>(); // State changes, oldest first
     dynamic last = new ExpandoObject(); // Last computed time and delta, for the delta step
     last.delta = 0;
     last.time = -1;
+
+    vars.start = false; // Start this tick
+    vars.split = false; // Split this tick
+    vars.queue = null; // Last queued split
 
     vars.lastSplit = String.Empty; // Name of the most recent split
     vars.productCode = String.Empty; // Used to detect when the game release has changed
@@ -1212,18 +1215,7 @@ init
         return String.Empty;
     });
 
-    // Stops the reader thread
-    vars.StopReader = (Action)(() => {
-        lock (sync) stopReader = true;
-    });
-
-    // Oldest queued change or null
-    vars.NextChange = (Func<ExpandoObject>)(() => {
-        lock (sync) return pending.Count > 0 ? pending.Dequeue() : null;
-    });
-
-    // Reads one snapshot of the values split looks at
-    // Default state when memory reads fail
+    // Default game state values
     vars.DefaultState = (Func<ExpandoObject>)(() => {
         dynamic state = new ExpandoObject();
         state.slot = 0; // Inventory slot number of the equipped item
@@ -1245,6 +1237,7 @@ init
         return (ExpandoObject)state;
     });
 
+    // Read current game state from memory
     vars.ReadState = (Func<ExpandoObject>)(() => {
         uint time = 0; // In Game Timer
         ushort room = 0; // Room the character is in
@@ -1280,7 +1273,6 @@ init
             return vars.DefaultState();
         }
 
-        // A failed block reads as zeros, same as the old per-entry reads
         if (inventory == null) inventory = new byte[48];
         if (killed == null) killed = new byte[64];
         if (events == null) events = new byte[64];
@@ -1371,21 +1363,21 @@ init
         return (ExpandoObject)state;
     });
 
-    // Updates game values
-    vars.UpdateValues = (Action) (() => {
+    // Updates current object from state
+    vars.UpdateCurrent = (Action) (() => {
         dynamic state = vars.ReadState();
-        current.slot = state.slot; // Inventory slot number of the equipped item
-        current.ammo = state.ammo; // Ammo count for the equipped weapon
+        current.slot = state.slot;
+        current.ammo = state.ammo;
         current.room = state.room;
         current.screen = state.screen;
         current.health = state.health;
         current.status = state.status;
         current.character = state.character;
-        current.inventory = state.inventory; // Current characters inventory
+        current.inventory = state.inventory;
         current.door = state.door;
         current.enemy = state.enemy;
-        current.killed = state.killed; // Killed enemy flags
-        current.events = state.events; // Events flags
+        current.killed = state.killed;
+        current.events = state.events;
         current.loading = state.loading;
         current.igt = state.igt;
         current.delta = state.delta;
@@ -1393,7 +1385,9 @@ init
     });
 
     // Start when IGT is 0, in the Prison Cell room and the 1st item slot contains the Lighter
-    vars.CheckStart = (Func<dynamic, bool>)((state) => state.time == 0 && state.room == 0 && state.inventory[0] == 0x37);
+    vars.CheckStart = (Func<dynamic, bool>)((state) =>
+        state.time == 0 && state.room == 0 && state.inventory[0] == 0x37
+    );
 
     // Split conditions for one state change
     vars.CheckSplit = (Func<dynamic, dynamic, bool>)((cur, prev) => {
@@ -1505,86 +1499,83 @@ init
         return split;
     });
 
-    vars.startNow = false; // Start this tick
-    vars.splitNow = false; // Split this tick
-    vars.changes = null; // Last queued change seen
+    // Return oldest queued change or null
+    vars.NextChange = (Func<ExpandoObject>)(() => {
+        lock (sync) return pending.Count > 0 ? pending.Dequeue() : null;
+    });
 
-    var reader = new System.Threading.Thread(() => {
+    // Stops the background thread
+    bool stopThread = false;
+    vars.StopThread = (Action)(() => {
+        lock (sync) stopThread = true;
+    });
+
+    // Stalls on the LiveSplit UI thread can cause timing issues, such as delayed splits
+    // and missed door transitions. Poll game memory on a separate thread so state changes
+    // are never missed. Splits are queued and replayed in order in update with exact timing.
+    var thread = new System.Threading.Thread(() => {
         dynamic prev = null;
         while (true)
         {
             lock (sync)
             {
-                if (stopReader)
+                if (stopThread)
                     break;
             }
 
             if (game.HasExited)
                 break;
 
-            long timestamp = System.Diagnostics.Stopwatch.GetTimestamp();
-
             dynamic state = vars.ReadState();
 
-            try
+            bool changed = prev == null ||
+                state.room != prev.room ||
+                state.enemy != prev.enemy ||
+                state.screen != prev.screen ||
+                (state.igt == 0) != (prev.igt == 0);
+
+            for (int i = 0; i < 11 && !changed; ++i)
+                changed = state.inventory[i] != prev.inventory[i];
+
+            for (int i = 0; i < state.killed.Length && !changed; ++i)
+                changed = state.killed[i] != prev.killed[i];
+
+            for (int i = 0; i < state.events.Length && !changed; ++i)
+                changed = state.events[i] != prev.events[i];
+
+            if (changed)
             {
-                bool changed = prev == null ||
-                    state.room != prev.room ||
-                    state.enemy != prev.enemy ||
-                    state.screen != prev.screen ||
-                    (state.igt == 0) != (prev.igt == 0);
-
-                if (!changed)
+                lock (sync)
                 {
-                    for (int i = 0; i < 11 && !changed; ++i)
-                        changed = state.inventory[i] != prev.inventory[i];
+                    if (pending.Count < 1024)
+                        pending.Enqueue((ExpandoObject)state);
                 }
-
-                if (!changed)
-                {
-                    for (int i = 0; i < state.killed.Length && !changed; ++i)
-                        changed = state.killed[i] != prev.killed[i];
-                    for (int i = 0; i < state.events.Length && !changed; ++i)
-                        changed = state.events[i] != prev.events[i];
-                }
-
-                if (changed)
-                {
-                    lock (sync)
-                    {
-                        if (pending.Count < 100000)
-                            pending.Enqueue((ExpandoObject)state);
-                    }
-                    prev = state;
-                }
+                prev = state;
             }
-            catch (Exception ex) { print("recvx reader: " + ex.Message); }
 
-            long next = timestamp + System.Diagnostics.Stopwatch.Frequency / 1000;
-            while (System.Diagnostics.Stopwatch.GetTimestamp() < next)
-                System.Threading.Thread.Yield();
+            System.Threading.Thread.Sleep(1);
         }
     });
-    reader.IsBackground = true;
-    reader.Start();
+    thread.IsBackground = true;
+    thread.Start();
 
     // Initialise values
     vars.UpdateProduct();
-    vars.UpdateValues();
+    vars.UpdateCurrent();
 }
 
 start
 {
-    return vars.startNow;
+    return vars.start;
 }
 
 update
 {
-    vars.startNow = false;
-    vars.splitNow = false;
+    vars.start = false;
+    vars.split = false;
 
     vars.UpdateProduct();
-    vars.UpdateValues();
+    vars.UpdateCurrent();
 
     TimerPhase phase = timer.CurrentPhase;
     if (phase == TimerPhase.NotRunning)
@@ -1599,8 +1590,8 @@ update
     // Replay the state changes since the last tick, in order
     for (dynamic state = vars.NextChange(); state != null; state = vars.NextChange())
     {
-        dynamic prev = vars.changes;
-        vars.changes = state;
+        dynamic prev = vars.queue;
+        vars.queue = state;
 
         if (prev == null || phase == TimerPhase.Ended)
             continue;
@@ -1613,37 +1604,39 @@ update
         if (!match)
             continue;
 
-        vars.startNow = starting;
-        vars.splitNow = !starting;
+        vars.start = starting;
+        vars.split = !starting;
         current.time = state.time;
+
         break;
     }
 }
 
 split
 {
-    return vars.splitNow;
+    return vars.split;
 }
 
 gameTime
 {
     if (settings["LRT"] && !settings["FRT"])
         return;
+
     return TimeSpan.FromSeconds(current.time / 60.0);
 }
 
 isLoading
 {
-    return settings["LRT"] && !settings["FRT"] ? vars.BitCheck(current.door, 0) : true;
+    return settings["LRT"] && !settings["FRT"] ? current.loading : true;
 }
 
 exit
 {
-    vars.StopReader();
+    vars.StopThread();
 }
 
 shutdown
 {
-    if (((IDictionary<string, object>)vars).ContainsKey("StopReader"))
-        vars.StopReader();
+    if (((IDictionary<string, object>)vars).ContainsKey("StopThread"))
+        vars.StopThread();
 }

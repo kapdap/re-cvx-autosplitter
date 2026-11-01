@@ -873,17 +873,14 @@ init
         2324, 2326, 2331, 2333, 2334, 2335, 2334
     };
 
-    // Read flags from indexed memory addresses
-    vars.ReadFlag = (Func<IntPtr, int, bool>)((pointer, id) => {
+    // Check flags from a block read
+    vars.CheckFlag = (Func<byte[], int, bool>)((buffer, id) => {
         int idx = (id / 32);
         int bit = (id % 32);
 
-        IntPtr address = IntPtr.Add(pointer, idx * 4);
+        uint word = BitConverter.ToUInt32(buffer, idx * 4);
 
-        uint buffer = 0;
-        memory.ReadValue<uint>(address, out buffer);
-
-        int value = vars.isBigEndian ? (int)vars.SwapBytesInt(buffer) : (int)buffer;
+        int value = vars.isBigEndian ? (int)vars.SwapBytesInt(word) : (int)word;
 
         return ((value >> (31 - bit)) & 1) != 0;
     });
@@ -1257,8 +1254,11 @@ init
         byte character = 0; // Character ID (0 Claire, 1 Chris, 2 Steve, 3 Wesker)
         byte door = 0; // Current status of door for load remover time
         ushort enemy = 0; // Enemy type
+        byte[] inventory = null; // Character inventory table, 12 entries x 4 bytes
+        byte[] killed = null; // Killed enemy flags, 512 bits
+        byte[] events = null; // Events flags, 512 bits
 
-        if (timePtr == IntPtr.Zero || roomPtr == IntPtr.Zero || screenPtr == IntPtr.Zero)
+        if (timePtr == IntPtr.Zero)
             return vars.DefaultState();
 
         try
@@ -1271,11 +1271,19 @@ init
             memory.ReadValue<byte>(characterPtr, out character);
             memory.ReadValue<byte>(doorFlagPtr, out door);
             memory.ReadValue<ushort>(IntPtr.Add(enemyPtr, 0x4), out enemy);
+            memory.ReadBytes(IntPtr.Add(inventoryPtr, (character * 0x40)), 48, out inventory);
+            memory.ReadBytes(killedPtr, 64, out killed);
+            memory.ReadBytes(eventsPtr, 64, out events);
         }
         catch
         {
             return vars.DefaultState();
         }
+
+        // A failed block reads as zeros, same as the old per-entry reads
+        if (inventory == null) inventory = new byte[48];
+        if (killed == null) killed = new byte[64];
+        if (events == null) events = new byte[64];
 
         dynamic state = new ExpandoObject();
         state.slot = 0; // Inventory slot number of the equipped item
@@ -1321,21 +1329,12 @@ init
 
         int index = -1; // Inventory array index
 
-        // Pointer to the current characters inventory table
-        IntPtr pointer = IntPtr.Add(inventoryPtr, (character * 0x40));
-
         try
         {
-            // Read inventory of the current character
+            // Decode inventory of the current character
             for (int i = 0; i < 12; ++i)
             {
-                uint item = 0; // Inventory entry
-
-                // Read inventory entry from memory
-                memory.ReadValue<uint>(pointer, out item);
-
-                // Move pointer to the next entry
-                pointer = IntPtr.Add(pointer, 0x4);
+                uint item = BitConverter.ToUInt32(inventory, i * 4); // Inventory entry
 
                 // Convert to little endian if the console uses big endian
                 item = vars.isBigEndian ? vars.SwapBytesInt(item) : item;
@@ -1359,10 +1358,10 @@ init
             }
 
             foreach(int i in vars.killedMap.Keys)
-                state.killed[i] = vars.ReadFlag(killedPtr, vars.killedMap[i]);
+                state.killed[i] = vars.CheckFlag(killed, vars.killedMap[i]);
 
             foreach(int i in vars.eventsMap.Keys)
-                state.events[i] = vars.ReadFlag(eventsPtr, vars.eventsMap[i]);
+                state.events[i] = vars.CheckFlag(events, vars.eventsMap[i]);
         }
         catch
         {

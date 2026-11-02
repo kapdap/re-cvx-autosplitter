@@ -331,7 +331,7 @@ startup
     settings.Add("logDiag", false, "Log Diagnostics", "optionsGroup");
     settings.SetToolTip("logDiag", "Diagnostics are saved to LiveSplit/" + vars.logDiagPath);
     settings.Add("highRes", false, "High Resolution Timer (Experimental)", "optionsGroup");
-    settings.SetToolTip("highRes", "(Experimental) Poll Background threads every 1 ms instead of ~15 ms");
+    settings.SetToolTip("highRes", "(Experimental) Poll background threads every 1 ms instead of ~15 ms");
 
     // Contributors list
     settings.Add("contributors", false, "Contributors");
@@ -346,7 +346,7 @@ startup
     settings.Add("infogroup", false, "Info");
     settings.Add("infogroup1", false, "Resident Evil: Code: Veronica Auto Splitter by Kapdap", "infogroup");
     settings.Add("infogroup2", false, "Website: https://github.com/kapdap/re-cvx-autosplitter", "infogroup");
-    settings.Add("infogroup3", false, "Last Update: 2026-10-26T01:20:00+1300", "infogroup");
+    settings.Add("infogroup3", false, "Last Update: 2026-11-02T15:27:00+1300", "infogroup");
 }
 
 init

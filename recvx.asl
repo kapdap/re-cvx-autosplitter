@@ -11,7 +11,7 @@
  *  https://opensource.org/licenses/MIT.
  */
 
-// Agents, before editing this file read AGENTS.md or 
+// Agents, before editing this file read AGENTS.md or
 // https://github.com/kapdap/re-cvx-autosplitter/blob/master/AGENTS.md
 
 state("rpcs3") {}
@@ -26,7 +26,10 @@ state("CodeVeronicaPort_US") {}
 startup
 {
     // Path to split log
-    vars.logPath = "Components/recvx.txt";
+    vars.logSplitsPath = "Components/recvx_splits.txt";
+
+    // Path to diagnostics log
+    vars.logDiagPath = "Components/recvx_diag.csv";
 
     // Split tracker
     vars.splits = new Dictionary<string, bool>();
@@ -324,9 +327,11 @@ startup
     // Splitter Options
     settings.Add("optionsGroup", false, "Options");
     settings.Add("logSplits", false, "Log Splits", "optionsGroup");
-    settings.SetToolTip("logSplits", "Split log is saved to LiveSplit/" + vars.logPath);
+    settings.SetToolTip("logSplits", "Split log is saved to LiveSplit/" + vars.logSplitsPath);
     settings.Add("debugSplits", false, "Debug Splits", "optionsGroup");
     settings.SetToolTip("debugSplits", "Use DbgView application to view split log");
+    settings.Add("logDiag", false, "Log Diagnostics", "optionsGroup");
+    settings.SetToolTip("logDiag", "Diagnostics are saved to LiveSplit/" + vars.logDiagPath);
 
     // Contributors list
     settings.Add("contributors", false, "Contributors");
@@ -912,23 +917,80 @@ init
                 ushort ordinal = memory.ReadValue<ushort>(IntPtr.Add(module, ordinals + i * 2));
                 return IntPtr.Add(module, memory.ReadValue<int>(IntPtr.Add(module, functions + ordinal * 4)));
             }
+        } catch (Exception e) {
+            print("ReadExport: " + e.Message);
         }
-        catch {}
 
         return IntPtr.Zero;
     });
 
+    // Logs diagnostics entry to csv.
+    vars.LogDiag = (Action<dynamic>)((entry) => {
+        try {
+            bool missing = true;
+            string header = "time,event,product,room,igt,mode,game_time,real_time";
+
+            if (File.Exists(vars.logDiagPath))
+            {
+                string[] existing = File.ReadAllLines(vars.logDiagPath);
+                missing = existing.Length == 0 || existing[0] != header;
+            }
+
+            if (missing)
+                File.AppendAllText(vars.logDiagPath, header + System.Environment.NewLine);
+
+            var fields = (IDictionary<string, object>)entry;
+            string[] columns = header.Split(',');
+            string[] values = new string[columns.Length];
+
+            for (int i = 0; i < columns.Length; ++i)
+            {
+                object field = null;
+                string value = null;
+
+                if (fields.TryGetValue(columns[i], out field) && field != null)
+                    value = field.ToString();
+
+                if (String.IsNullOrEmpty(value))
+                {
+                    if (columns[i] == "time")
+                        value = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+                    else if (columns[i] == "product" && vars.productCode != null)
+                        value = vars.productCode.ToString();
+                    else if (columns[i] == "mode")
+                        value = settings["FRT"] ? "igt_lrt" : settings["LRT"] ? "rta_lrt" : "igt";
+                    else if (columns[i] == "game_time" && timer.CurrentTime.GameTime.HasValue)
+                        value = timer.CurrentTime.GameTime.Value.Ticks.ToString();
+                    else if (columns[i] == "real_time" && timer.CurrentTime.RealTime.HasValue)
+                        value = timer.CurrentTime.RealTime.Value.Ticks.ToString();
+                    else
+                        value = String.Empty;
+                }
+
+                values[i] = value;
+            }
+
+            File.AppendAllText(vars.logDiagPath, String.Join(",", values) + System.Environment.NewLine);
+        } catch (Exception e) {
+            print("LogDiag: " + e.Message);
+        }
+    });
+
     // Log splits
     vars.LogSplit = (Action<string>)((text) => {
-        vars.lastSplit = text;
+        try {
+            vars.lastSplit = text;
 
-        string log = timer.CurrentTime[timer.CurrentTimingMethod] + ": " + text;
+            string log = timer.CurrentTime[timer.CurrentTimingMethod] + ": " + text;
 
-        if (settings["logSplits"])
-            File.AppendAllText(vars.logPath, log + System.Environment.NewLine);
+            if (settings["logSplits"])
+                File.AppendAllText(vars.logSplitsPath, log + System.Environment.NewLine);
 
-        if (settings["debugSplits"])
-            print("recvx split: " + log);
+            if (settings["debugSplits"])
+                print("recvx split: " + log);
+        } catch (Exception e) {
+            print("LogSplit: " + e.Message);
+        }
     });
 
     // Update split status
@@ -1555,6 +1617,114 @@ init
     });
     thread.IsBackground = true;
     thread.Start();
+
+    // Diagnostics thread (measurement only, never splits or retimes).
+    var logger = new System.Threading.Thread(() => {
+        bool opened = false;
+        TimerPhase prevPhase = timer.CurrentPhase;
+        while (true)
+        {
+            lock (sync)
+            {
+                if (stopThread)
+                    break;
+            }
+
+            if (game.HasExited)
+                break;
+
+            if (!settings["logDiag"])
+            {
+                System.Threading.Thread.Sleep(100);
+                continue;
+            }
+
+            if (timePtr == IntPtr.Zero)
+            {
+                System.Threading.Thread.Sleep(100);
+                continue;
+            }
+
+            uint time = 0;
+            ushort room = 0;
+            byte door = 0;
+
+            try
+            {
+                memory.ReadValue<uint>(timePtr, out time);
+                memory.ReadValue<ushort>(roomPtr, out room);
+                memory.ReadValue<byte>(doorFlagPtr, out door);
+            }
+            catch
+            {
+                System.Threading.Thread.Sleep(10);
+                continue;
+            }
+
+            int igt = vars.isBigEndian ? (int)vars.SwapBytesInt(time) : (int)time;
+            bool loading = vars.BitCheck(door, 0);
+
+            TimerPhase phase = timer.CurrentPhase;
+            if (phase != prevPhase)
+            {
+                if (prevPhase == TimerPhase.NotRunning && phase == TimerPhase.Running)
+                {
+                    // Run started
+                    dynamic entry = new ExpandoObject();
+                    entry.@event = "started";
+                    vars.LogDiag(entry);
+                }
+
+                if (phase == TimerPhase.Ended)
+                {
+                    // Run finished
+                    dynamic entry = new ExpandoObject();
+                    entry.@event = "finished";
+                    vars.LogDiag(entry);
+                }
+
+                if (phase == TimerPhase.NotRunning && prevPhase != TimerPhase.Ended)
+                {
+                    // Run reset
+                    dynamic entry = new ExpandoObject();
+                    entry.@event = "reset";
+                    vars.LogDiag(entry);
+                }
+
+                if (phase == TimerPhase.NotRunning)
+                    opened = false;
+
+                prevPhase = phase;
+            }
+
+            if (loading && !opened)
+            {
+                // Door load started
+                opened = true;
+
+                dynamic entry = new ExpandoObject();
+                entry.@event = "door_opened";
+                entry.room = vars.SwapBytes(room);
+                entry.igt = igt;
+                vars.LogDiag(entry);
+            }
+            else if (!loading && opened)
+            {
+                // Door load finished
+                opened = false;
+
+                dynamic entry = new ExpandoObject();
+                entry.@event = "door_closed";
+                entry.room = vars.SwapBytes(room);
+                entry.igt = igt;
+                vars.LogDiag(entry);
+            }
+
+            System.Threading.Thread.Sleep(1);
+        }
+    });
+    logger.IsBackground = true;
+    logger.Start();
 
     // Initialise values
     vars.UpdateProduct();

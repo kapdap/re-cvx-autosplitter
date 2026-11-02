@@ -328,10 +328,10 @@ startup
     settings.Add("optionsGroup", false, "Options");
     settings.Add("logSplits", false, "Log Splits", "optionsGroup");
     settings.SetToolTip("logSplits", "Split log is saved to LiveSplit/" + vars.logSplitsPath);
-    settings.Add("debugSplits", false, "Debug Splits", "optionsGroup");
-    settings.SetToolTip("debugSplits", "Use DbgView application to view split log");
     settings.Add("logDiag", false, "Log Diagnostics", "optionsGroup");
     settings.SetToolTip("logDiag", "Diagnostics are saved to LiveSplit/" + vars.logDiagPath);
+    settings.Add("highRes", false, "High Resolution Timer (Experimental)", "optionsGroup");
+    settings.SetToolTip("highRes", "(Experimental) Poll Background threads every 1 ms instead of ~15 ms");
 
     // Contributors list
     settings.Add("contributors", false, "Contributors");
@@ -985,9 +985,6 @@ init
 
             if (settings["logSplits"])
                 File.AppendAllText(vars.logSplitsPath, log + System.Environment.NewLine);
-
-            if (settings["debugSplits"])
-                print("recvx split: " + log);
         } catch (Exception e) {
             print("LogSplit: " + e.Message);
         }
@@ -1563,6 +1560,77 @@ init
         lock (sync) return queue.Count > 0 ? queue.Dequeue() : null;
     });
 
+    // (Experimental) Creates a 1 ms high-resolution timer for background threads.
+    vars.CreateWaitTimer = (Func<dynamic>)(() => {
+        const uint timerHighResolution = 0x2;   // CREATE_WAITABLE_TIMER_HIGH_RESOLUTION
+        const uint timerAllAccess = 0x1F0003;   // TIMER_ALL_ACCESS
+
+        dynamic ticker = new ExpandoObject();
+        ticker.waitFor = null;
+        ticker.closeHandle = null;
+        ticker.handle = IntPtr.Zero;
+
+        if (!settings["highRes"])
+            return ticker;
+
+        try
+        {
+            var nativeType = (Type)AppDomain.CurrentDomain.GetData("recvx_native");
+            if (nativeType == null)
+            {
+                var typeBuilder = AppDomain.CurrentDomain
+                    .DefineDynamicAssembly(new AssemblyName("recvx_native"), System.Reflection.Emit.AssemblyBuilderAccess.Run)
+                    .DefineDynamicModule("recvx_native")
+                    .DefineType("Native", TypeAttributes.Public | TypeAttributes.Abstract | TypeAttributes.Sealed);
+
+                Action<string, Type, Type[]> import = (name, ret, args) => {
+                    var method = typeBuilder.DefinePInvokeMethod(name, "kernel32.dll",
+                        MethodAttributes.Public | MethodAttributes.Static | MethodAttributes.PinvokeImpl,
+                        CallingConventions.Standard, ret, args,
+                        System.Runtime.InteropServices.CallingConvention.Winapi, System.Runtime.InteropServices.CharSet.Unicode);
+                    method.SetImplementationFlags(method.GetMethodImplementationFlags() | MethodImplAttributes.PreserveSig);
+                };
+                import("CreateWaitableTimerExW", typeof(IntPtr), new[] { typeof(IntPtr), typeof(IntPtr), typeof(uint), typeof(uint) });
+                import("SetWaitableTimer", typeof(bool), new[] { typeof(IntPtr), typeof(IntPtr), typeof(int), typeof(IntPtr), typeof(IntPtr), typeof(bool) });
+                import("WaitForSingleObject", typeof(uint), new[] { typeof(IntPtr), typeof(uint) });
+                import("CloseHandle", typeof(bool), new[] { typeof(IntPtr) });
+
+                nativeType = typeBuilder.CreateType();
+                AppDomain.CurrentDomain.SetData("recvx_native", nativeType);
+            }
+
+            var createTimer = (Func<IntPtr, IntPtr, uint, uint, IntPtr>)Delegate.CreateDelegate(
+                typeof(Func<IntPtr, IntPtr, uint, uint, IntPtr>), nativeType.GetMethod("CreateWaitableTimerExW"));
+            var setTimer = (Func<IntPtr, IntPtr, int, IntPtr, IntPtr, bool, bool>)Delegate.CreateDelegate(
+                typeof(Func<IntPtr, IntPtr, int, IntPtr, IntPtr, bool, bool>), nativeType.GetMethod("SetWaitableTimer"));
+            ticker.waitFor = (Func<IntPtr, uint, uint>)Delegate.CreateDelegate(
+                typeof(Func<IntPtr, uint, uint>), nativeType.GetMethod("WaitForSingleObject"));
+            ticker.closeHandle = (Func<IntPtr, bool>)Delegate.CreateDelegate(
+                typeof(Func<IntPtr, bool>), nativeType.GetMethod("CloseHandle"));
+
+            ticker.handle = createTimer(IntPtr.Zero, IntPtr.Zero, timerHighResolution, timerAllAccess);
+
+            IntPtr dueTime = System.Runtime.InteropServices.Marshal.AllocHGlobal(8);
+
+            // 1 ms, relative, in 100 ns units
+            System.Runtime.InteropServices.Marshal.WriteInt64(dueTime, -10000L);
+
+            // refire every 1 ms (0 = one-shot)
+            if (ticker.handle != IntPtr.Zero && !setTimer(ticker.handle, dueTime, 1, IntPtr.Zero, IntPtr.Zero, false))
+            {
+                ticker.closeHandle(ticker.handle);
+                ticker.handle = IntPtr.Zero;
+            }
+
+            System.Runtime.InteropServices.Marshal.FreeHGlobal(dueTime);
+        } catch (Exception e) {
+            print("CreateWaitTimer: " + e.Message);
+            ticker.handle = IntPtr.Zero;
+        }
+
+        return ticker;
+    });
+
     // Stops the background thread
     bool stopThread = false;
     vars.StopThread = (Action)(() => {
@@ -1572,6 +1640,7 @@ init
     // Stalls on the LiveSplit UI thread can cause timing issues, such as delayed splits
     // and missed door transitions. Poll game memory on a separate thread so state changes
     // are never missed. Splits are queued and replayed in order in `update` with exact timing.
+    dynamic readTimer = vars.CreateWaitTimer();
     var thread = new System.Threading.Thread(() => {
         dynamic prev = null;
         while (true)
@@ -1612,13 +1681,20 @@ init
                 prev = state;
             }
 
-            System.Threading.Thread.Sleep(1);
+            if (readTimer.handle != IntPtr.Zero)
+                readTimer.waitFor(readTimer.handle, 100);
+            else
+                System.Threading.Thread.Sleep(1);
         }
+
+        if (readTimer.handle != IntPtr.Zero)
+            readTimer.closeHandle(readTimer.handle);
     });
     thread.IsBackground = true;
     thread.Start();
 
     // Diagnostics thread (measurement only, never splits or retimes).
+    dynamic diagTimer = vars.CreateWaitTimer();
     var logger = new System.Threading.Thread(() => {
         bool opened = false;
         TimerPhase prevPhase = timer.CurrentPhase;
@@ -1720,8 +1796,14 @@ init
                 vars.LogDiag(entry);
             }
 
-            System.Threading.Thread.Sleep(1);
+            if (diagTimer.handle != IntPtr.Zero)
+                diagTimer.waitFor(diagTimer.handle, 100);
+            else
+                System.Threading.Thread.Sleep(1);
         }
+
+        if (diagTimer.handle != IntPtr.Zero)
+            diagTimer.closeHandle(diagTimer.handle);
     });
     logger.IsBackground = true;
     logger.Start();

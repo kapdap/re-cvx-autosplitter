@@ -17,9 +17,9 @@ These rules provide basic quality control for agent changes.
 
 - Keep existing names. For new locals and state fields, use descriptive `camelCase`, such as `basePointer`, `roomPtr`, and `doorsIndex`.
 - Avoid opaque names and index tables such as `addr`, `lay`, `A_LEN`, `A_DOOR`, and `B_ROOM`. Prefer names such as `timePtr` and `doorFlagPtr`.
-- Store cross-action state in `vars.*`. Name shared helpers in `PascalCase`, such as `vars.ReadState`. Do not shadow `vars.*` data.
+- Store cross-action state in `vars.*`. Name shared helpers in `PascalCase`, such as `vars.ReadState`, `vars.LogDiag`, and `vars.CreateWaitTimer`. Do not shadow `vars.*` data. Never name a local `timer`; it collides with LiveSplit's global.
 - Keep state fields `killed`, `events`, `start`, and `split` unchanged.
-- Setting IDs and process names are fixed contracts. Preserve exact names, such as `anySplits`, `FRT`, and `state("rpcs3")`.
+- Setting IDs and process names are fixed contracts. Preserve exact names, such as `anySplits`, `FRT`, `logDiag`, `highRes`, and `state("rpcs3")`.
 
 ### Final variable names
 
@@ -33,7 +33,7 @@ These names are final. Never rename them, including during cleanup or refactorin
 
 - Use four spaces for indentation.
 - Put ASL action braces and C# block braces for `if`, `switch`, `try`, and loops on the next line.
-- Keep lambda braces after `=>`, as in `=> {`. Keep empty process declarations inline, as in `state("rpcs3") {}`.
+- Keep lambda braces after `=>`, as in `=> {`. Keep empty process declarations inline, as in `state("rpcs3") {}`. Keep error-reporting catches as `} catch (Exception e) {`.
 - Keep one-line `return` and `continue` guards on one line.
 - Put each setting, pointer entry, and route row on its own line.
 
@@ -41,10 +41,11 @@ These names are final. Never rename them, including during cleanup or refactorin
 
 - Keep every supported `state()` declaration at the top.
 - Put trackers, Add/Reset helpers, byte helpers, and settings in `startup`.
-- Put pointer locals, sync and queue state, product tables, routes, helpers, the reader thread, and initialization calls in `init`.
+- Put pointer locals, sync and queue state, product tables, routes, helpers, the reader thread, the diagnostics logger thread and its timer locals, and initialization calls in `init`.
+- Timer handles are created once in `init`; toggling `highRes` takes effect on script reload.
 - Keep runtime order: `start`, `update`, `split`, `gameTime`, `isLoading`, `exit`, `shutdown`. `update` replays queued changes. `start` and `split` return flags. Keep `gameTime` and `isLoading` short.
 - Use the existing shared-helper pattern: `vars.Name = (Func<...>)((...) => { ... })`. Keep helper names and signatures. Do not use bare `Func` or `Action` locals for shared helpers.
-- Keep per-address memory reads, the existing reader thread, and the `SwapBytes`, `SwapBytesInt`, and `CheckFlag` helpers. Do not add block reads, decode layers, extra threads, new timing systems, P/Invoke, or `AppDomain` storage.
+- Keep per-address memory reads, the reader thread, the diagnostics logger thread, and the `SwapBytes`, `SwapBytesInt`, and `CheckFlag` helpers. Do not add block reads, decode layers, further threads, new timing systems, or additional P/Invoke beyond the approved `highRes` waitable timer (`vars.CreateWaitTimer`, runtime-emitted, cached in `AppDomain`).
 
 ## Frozen actions
 

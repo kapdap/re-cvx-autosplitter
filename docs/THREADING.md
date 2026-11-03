@@ -13,18 +13,18 @@ That caused two failures.
 
 The fix uses a producer and a consumer. A background reader constantly polls game memory to save each split to a shared queue and track load removal time. The UI thread then replays that queue in order, one entry per tick, so nothing is lost during UI stalls.
 
-## Functions
+## Threads
 
-- Reader producer that saves split and start states.
-- UI consumer that replays saved states in order with at most one start or split per tick.
-- Logger that measures loads and phases without firing starts or splits.
+- Reader thread produces split and start states on the shared queue.
+- LiveSplit thread consumes the queue and replays each saved states in order on every tick.
+- Logger thread that measures loads and phases without firing starts or splits.
 
 ## Queue
 
 The queue is the only link between the reader and the UI.
 
 - The reader is the single producer and adds a trigger state on detection.
-- The UI is the single consumer and takes the oldest trigger first.
+- LiveSplit is the single consumer and takes the oldest trigger first.
 - Split game time comes from the trigger state.
 
 The queue keeps the history, so a room transition between UI stalls is still tracked with accurate timing.
@@ -35,7 +35,7 @@ The reader runs a single producer loop for splits and starts.
 
 Every pass reads complete game state, tracks load removal time, and queues split or start states with the correct time.
 
-## UI replay
+## LiveSplit
 
 Each `update` tick clears the pending start and split flags, then takes the oldest state from the queue.
 
@@ -43,7 +43,7 @@ Each queued state is checked as a start or split trigger, sets the appropriate f
 
 ## High-resolution timer
 
-High-resolution mode is an optional experimental Windows timer used by both background threads. It fires every 1 ms instead of the standard 15 ms. The game updates at 60 TPS or about 16 ms, so the faster timer is generally unnecessary.
+High-resolution mode is an optional experimental Windows timer used by the reader and logger threads. It fires every 1 ms instead of the standard 15 ms. The game updates at 60 TPS or about 16 ms, so the faster timer is generally unnecessary.
 
 ## References
 

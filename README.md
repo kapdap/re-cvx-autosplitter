@@ -4,7 +4,7 @@
 
 A [LiveSplit](https://livesplit.org/) Auto Splitter for Resident Evil/Biohazard: Code: Veronica for RPCS3, PCSX2 and Dolphin emulators. This Auto Splitter allows you to create splits for item pickups, room transitions and bosses. It can also compare against in game time and remove load time. Additionaly, character health, poison status and equipped weapon ammo can be displayed in LiveSplit with the [ASL Var Viewer](https://github.com/hawkerm/LiveSplit.ASLVarViewer) component.
 
-*Last Update: 2026-11-02T15:27:00+1300*
+*Last Update: 2026-11-03T16:43:00+1300*
 
 ## Extras
 

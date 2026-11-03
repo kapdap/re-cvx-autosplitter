@@ -1468,8 +1468,8 @@ init
     });
 
     // Start when IGT is 0, in the Prison Cell room and the 1st item slot contains the Lighter
-    vars.CheckStart = (Func<dynamic, bool>)((state) =>
-        state.time == 0 && state.room == 0 && state.inventory[0] == 0x37
+    vars.CheckStart = (Func<dynamic, dynamic, bool>)((cur, prev) =>
+        prev.time == 0 && cur.time > 0 && cur.room == 0 && cur.inventory[0] == 0x37
     );
 
     // Split conditions for one state change
@@ -1869,7 +1869,7 @@ update
 
         bool start = phase == TimerPhase.NotRunning;
         bool match = start
-            ? vars.CheckStart(state)
+            ? vars.CheckStart(state, prev)
             : vars.CheckSplit(state, prev);
 
         if (!match)

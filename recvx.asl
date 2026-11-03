@@ -132,10 +132,12 @@ startup
     vars.BitCheck = new Func<byte, int, bool>((byte val, int b) => (val & (1 << b)) != 0);
 
     settings.Add("time", true, "Timing Methods (Only enable 1 option)");
-    settings.Add("FRT", false, "Load Remover Time (Game Time)", "time");
-    settings.SetToolTip("FRT", "Removes door load time based on the in-game time");
-    settings.Add("LRT", false, "Load Remover Time (Real Time)", "time");
-    settings.SetToolTip("LRT", "Removes door load time based on the real time");
+    settings.Add("FRT", false, "Load Remover Time (IGT)", "time");
+    settings.SetToolTip("FRT", "Frame accurate load remover time based on the in-game time");
+    settings.Add("RRT", false, "Load Remover Time (RTA)", "time");
+    settings.SetToolTip("RRT", "Real time based accurate load remover time");
+    settings.Add("LRT", false, "Load Remover Time (RTA) (Old)", "time");
+    settings.SetToolTip("LRT", "Pauses the timer during door loads (old method)");
 
     settings.Add("doorSplits", true, "Doors (Only enable 1 option)");
     settings.SetToolTip("doorSplits", "Enables door splits for the selected route");
@@ -372,6 +374,8 @@ init
     dynamic last = new ExpandoObject(); // Last computed time and delta
     last.delta = 0;
     last.time = -1;
+    last.real = 0;
+    last.stamp = System.Diagnostics.Stopwatch.GetTimestamp();
 
     vars.start = false; // Start this tick
     vars.split = false; // Split this tick
@@ -1297,6 +1301,7 @@ init
         state.igt = 0;
         state.delta = 0;
         state.time = 0;
+        state.real = 0;
         return (ExpandoObject)state;
     });
 
@@ -1376,6 +1381,27 @@ init
             last.time = state.time;
         }
 
+        lock (sync)
+        {
+            long stamp = System.Diagnostics.Stopwatch.GetTimestamp();
+            double elapsed = (double)(stamp - last.stamp) * 1000.0 / (double)System.Diagnostics.Stopwatch.Frequency;
+            last.stamp = stamp;
+
+            if (elapsed < 0)
+                elapsed = 0;
+
+            if (state.igt == 0)
+                last.real = 0;
+
+            if (settings["RRT"] && last.time >= 0 && !state.loading)
+                last.real += elapsed;
+
+            if (state.igt < last.time)
+                last.real = 0;
+
+            state.real = last.real;
+        }
+
         // Check status for gassed or poison flags
         if ((status & 0x20) != 0)
             state.status = "Gassed";
@@ -1438,6 +1464,7 @@ init
         current.igt = state.igt;
         current.delta = state.delta;
         current.time = state.time;
+        current.real = state.real;
     });
 
     // Start when IGT is 0, in the Prison Cell room and the 1st item slot contains the Lighter
@@ -1852,6 +1879,7 @@ update
         vars.split = !start;
 
         current.time = state.time;
+        current.real = state.real;
 
         break;
     }
@@ -1869,6 +1897,9 @@ split
 
 gameTime
 {
+    if (settings["RRT"] && !settings["FRT"])
+        return TimeSpan.FromMilliseconds((double)current.real);
+
     if (settings["LRT"] && !settings["FRT"])
         return;
 

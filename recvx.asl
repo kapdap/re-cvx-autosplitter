@@ -1366,7 +1366,7 @@ init
             if (state.igt == 0)
                 last.delta = 0;
 
-            if (settings["FRT"] && last.time >= 0 && state.loading)
+            if (last.time >= 0 && state.loading)
             {
                 int add = state.igt - last.time - last.delta;
                 if (add > 0)
@@ -1393,7 +1393,7 @@ init
             if (state.igt == 0)
                 last.real = 0;
 
-            if (settings["RRT"] && last.time >= 0 && !state.loading)
+            if (last.time >= 0 && !state.loading)
                 last.real += elapsed;
 
             if (state.igt < last.time)
@@ -1878,6 +1878,7 @@ update
         vars.start = start;
         vars.split = !start;
 
+        current.igt = state.igt;
         current.time = state.time;
         current.real = state.real;
 
@@ -1897,18 +1898,22 @@ split
 
 gameTime
 {
-    if (settings["RRT"] && !settings["FRT"])
+    if (settings["FRT"])
+        return TimeSpan.FromSeconds(current.time / 60.0);
+
+    if (settings["RRT"])
         return TimeSpan.FromMilliseconds((double)current.real);
 
-    if (settings["LRT"] && !settings["FRT"])
+    if (settings["LRT"])
         return;
 
-    return TimeSpan.FromSeconds(current.time / 60.0);
+    return TimeSpan.FromSeconds(current.igt / 60.0);
 }
 
 isLoading
 {
-    return settings["LRT"] && !settings["FRT"] ? current.loading : true;
+    bool enabled = settings["LRT"] && !settings["FRT"] && !settings["RRT"];
+    return enabled ? current.loading : true;
 }
 
 exit
